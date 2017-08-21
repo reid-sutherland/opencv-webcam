@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<SADWindowSize>15</SADWindowSize>
+<numberOfDisparities>80</numberOfDisparities>
+<no_downscale>0</no_downscale>
+<filterType>wls_no_conf</filterType>
+<method>bm</method>
+<wls_lambda>8000.</wls_lambda>
+<wls_sigma>1.5000000000000000e+00</wls_sigma>
+<vis_mult>1.</vis_mult>
+</opencv_storage>
