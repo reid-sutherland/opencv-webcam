@@ -107,12 +107,13 @@ int Reconstruction3D::CustomProject3d(cv::Mat Q, cv::Mat img_rgb, cv::Mat img_di
             //Get 3D coordinates
             uchar d = disp_ptr[j];
 
-            //if (d == 0) continue; //Discard bad pixels
             if(d < FLT_EPSILON || d > max_z) continue; //Discard bad pixels
-            double pw = -1.0 * static_cast<double>(d)* (Q.at<double>(3, 2) + Q.at<double>(3, 3));
-            px = static_cast<double>(j)+Q.at<double>(0, 3);
-            py = static_cast<double>(i)+Q.at<double>(1, 3);
-            pz = Q.at<double>(2, 3);
+
+            // pw = <double> d / Tx
+            double pw = -1.0 * static_cast<double>(d) * (Q.at<double>(3, 2) + Q.at<double>(3, 3));
+            px = static_cast<double>(j)+Q.at<double>(0, 3);     //px = col# + (-cx)
+            py = static_cast<double>(i)+Q.at<double>(1, 3);     //py = row# + (-cy)
+            pz = Q.at<double>(2, 3);                            //pz = focal pt
 
             px = px / pw;
             py = py / pw;
@@ -145,3 +146,26 @@ void Reconstruction3D::printParameter()
 {
     std::cout << " --- Reconstruction3D Parameters --- " << std::endl;
 }
+
+
+/*
+
+Q Matrix form:
+
+    | 1  0    0         -cx      |
+Q = | 0  1    0         -cy      |
+    | 0  0    0          f       |
+    | 0  0  -1/Tx  (cx - c'x)/Tx |
+
+    cx / cy     coordinates of the principal point in the dominant camera
+    c'x         x-coordinate of the principal point in the non-dominant camera
+                    (will be equal to cx if CALIB_ZERO_DISPARITY is specified, which is normally the case here)
+    f           focal length
+    Tx          baseline length - translation from one optical center to the other
+
+    Orientation: cx is at (0,3), cy is at (1,3), etc.
+*/
+
+
+
+

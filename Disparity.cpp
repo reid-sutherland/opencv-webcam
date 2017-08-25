@@ -5,15 +5,21 @@
  *  Author: erman
  */
 
+//#define DEBUG
+//#define STAT
+
 #include "Disparity.h"
 
 Disparity::Disparity()
     : method("bm"), wls_lambda(8000.0),
       filterType("wls_no_conf"), wls_sigma(1.5), vis_mult(1.0),
-      numberOfDisparities(160), SADWindowSize(-1), downscale(true),
+      numberOfDisparities(160), SADWindowSize(-1), downscale(false),
       stereoCalibration(StereoCalibration::Instance())
 {
-    std::cout << "#$%^&Disparity Constructor" << std::endl;
+    // Note: downscaling only works if bm and wls_conf
+    // bm, 8000.0, wls_conf, 1.5, 160, true is terrible
+    // bm, 8000.0, wls_conf, 1.5, 160, false is okay but rather blurry
+    // bm, 8000.0, wls_no_conf, 1.5, 160, is pretty good, a little buggy
 }
 
 Disparity::~Disparity() {
@@ -114,16 +120,16 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             cv::cvtColor(left_for_matcher,  left_for_matcher,  cv::COLOR_BGR2GRAY);
             cv::cvtColor(right_for_matcher, right_for_matcher, cv::COLOR_BGR2GRAY);
 
-            #ifdef STAT
-            matching_time = (double)cv::getTickCount();
-            #endif
+                #ifdef STAT
+                matching_time = (double)cv::getTickCount();
+                #endif
 
             left_matcher->compute(left_for_matcher, right_for_matcher,left_disp);
             right_matcher->compute(right_for_matcher,left_for_matcher, right_disp);
 
-            #ifdef STAT
-            matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-            #endif
+                #ifdef STAT
+                matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
+                #endif
             //! [matching]
         }
         else if (method == "sgbm")
@@ -136,16 +142,16 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             wls_filter = cv::ximgproc::createDisparityWLSFilter(left_matcher);
             cv::Ptr<cv::StereoMatcher> right_matcher = cv::ximgproc::createRightMatcher(left_matcher);
 
-            #ifdef STAT
-            matching_time = (double)cv::getTickCount();
-            #endif
+                #ifdef STAT
+                matching_time = (double)cv::getTickCount();
+                #endif
 
             left_matcher-> compute(left_for_matcher, right_for_matcher,left_disp);
             right_matcher->compute(right_for_matcher,left_for_matcher, right_disp);
 
-            #ifdef STAT
-            matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-            #endif
+                #ifdef STAT
+                matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
+                #endif
         }
         else
         {
@@ -156,18 +162,21 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
         //! [filtering]
         wls_filter->setLambda(wls_lambda);
         wls_filter->setSigmaColor(wls_sigma);
-        #ifdef STAT
-        filtering_time = (double)cv::getTickCount();
-        #endif
+
+            #ifdef STAT
+            filtering_time = (double)cv::getTickCount();
+            #endif
+
         wls_filter->filter(left_disp,imLeft, semi_filtered_disp,right_disp);
-        #ifdef STAT
-        filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
-        #endif
+
+            #ifdef STAT
+            filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
+            #endif
         //! [filtering]
 
-        #ifdef DEBUG
-        conf_map = wls_filter->getConfidenceMap();
-        #endif
+            #ifdef DEBUG
+            conf_map = wls_filter->getConfidenceMap();
+            #endif
 
         // Get the ROI that was used in the last filter call:
         ROI = wls_filter->getROI();
@@ -198,13 +207,13 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             wls_filter = cv::ximgproc::createDisparityWLSFilterGeneric(false);
             wls_filter->setDepthDiscontinuityRadius((int)ceil(0.33*SADWindowSize));
 
-            #ifdef STAT
-            matching_time = (double)cv::getTickCount();
-            #endif
+                #ifdef STAT
+                matching_time = (double)cv::getTickCount();
+                #endif
             matcher->compute(left_for_matcher,right_for_matcher,left_disp);
-            #ifdef STAT
-            matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-            #endif
+                #ifdef STAT
+                matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
+                #endif
         }
         else if (method == "sgbm")
         {
@@ -219,13 +228,13 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             wls_filter = cv::ximgproc::createDisparityWLSFilterGeneric(false);
             wls_filter->setDepthDiscontinuityRadius((int)ceil(0.5*SADWindowSize));
 
-            #ifdef STAT
-            matching_time = (double)cv::getTickCount();
-            #endif
+                #ifdef STAT
+                matching_time = (double)cv::getTickCount();
+                #endif
             matcher->compute(left_for_matcher,right_for_matcher,left_disp);
-            #ifdef STAT
-            matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-            #endif
+                #ifdef STAT
+                matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
+                #endif
         }
         else
         {
@@ -235,13 +244,13 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
 
         wls_filter->setLambda(wls_lambda);
         wls_filter->setSigmaColor(wls_sigma);
-        #ifdef STAT
-        filtering_time = (double)cv::getTickCount();
-        #endif
+            #ifdef STAT
+            filtering_time = (double)cv::getTickCount();
+            #endif
         wls_filter->filter(left_disp,imLeft,semi_filtered_disp,cv::Mat(),ROI);
-        #ifdef STAT
-        filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
-        #endif
+            #ifdef STAT
+            filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
+            #endif
     }
     else
     {

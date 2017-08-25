@@ -40,7 +40,7 @@ class Reconstruction3D {
 
 private:
     //Global Reconstruction3D Parameterss
-    Disparity disp;
+    Disparity& disp;    //This makes disp a reference to disparityObject in main
     double maxDepth;
     double alpha;
     int bufsize;

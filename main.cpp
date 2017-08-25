@@ -7,7 +7,6 @@
 
 //Local
 #include "UtilsCameras.h"
-#include "CameraConnectOptions.h"
 #include "CameraView.h"
 #include "StereoCalibration.h"
 #include "MyCalibration.h"
@@ -33,7 +32,6 @@ UtilsCameras util;
 SharedImageBuffer *sharedImageBuffer;
 vector<int> deviceIDs;
 map<int, CameraView*> cameraViewMap;
-map<int, CameraConnectOptions*> cameraOptionsMap;
 mutex delete_mutex;
 
 //Global Variables for processing/3D reconstruction
@@ -46,7 +44,6 @@ Reconstruction3D reconstruction3D(disparityObject);
 bool connectCameras();
 void calibrateCameras();
 void processFeeds();
-void connectCamerasDialog();
 int getch();
 
 void welcome() {
@@ -97,8 +94,6 @@ int main (int argc, char* argv[])
             cout << "\n***NOTICE***: Only two cameras found, automatically starting camera connection." << endl;
             cout << "Connecting to cameras [" << deviceIDs[0] << "] and [" << deviceIDs[1] << "]" << endl << endl;
 
-            cameraOptionsMap.clear();
-            connectCamerasDialog();
             connectCameras();
 
             cout << "\nAll cameras successfully disconnected." << endl;
@@ -182,8 +177,6 @@ int main (int argc, char* argv[])
                 continue;
             }
 
-            cameraOptionsMap.clear();
-            connectCamerasDialog();
             connectCameras();
 
             cout << "\nAll cameras successfully disconnected." << endl;
@@ -220,11 +213,13 @@ int main (int argc, char* argv[])
 bool connectCameras() {
     //always enable stream synchronization
     bool streamSync = true;
+    int defaultBufferSize = 100;
+    bool defaultEnableFrameDrop = true;
 
     //for each camera registered in deviceIDs...
     for (auto deviceID : deviceIDs) {
         //create a new imageBuffer
-        auto *imageBuffer = new Buffer<Mat>(cameraOptionsMap[deviceID]->getBufferSize());
+        auto *imageBuffer = new Buffer<Mat>(defaultBufferSize);
 
         //add each imageBuffer to the sharedImageBuffer
         sharedImageBuffer->add(deviceID, imageBuffer, streamSync);
@@ -236,7 +231,7 @@ bool connectCameras() {
 
     //attempt to connect to each camera
     for (auto deviceID : deviceIDs) {
-        if (cameraViewMap[deviceID]->connectToCamera(cameraOptionsMap[deviceID]->getEnableFrameDrop(), -1, -1)) {
+        if (cameraViewMap[deviceID]->connectToCamera(defaultEnableFrameDrop, -1, -1)) {
             cerr << "[ " << deviceID << " ] Connection Successful!\n" << endl;
         }
         else {
@@ -256,10 +251,6 @@ bool connectCameras() {
         //Explicitly delete cameraView
         delete cameraViewMap[deviceID];
         cameraViewMap.erase(deviceID);
-
-        //delete cameraOptionsMap
-        delete cameraOptionsMap[deviceID];
-        cameraOptionsMap.erase(deviceID);
 
         delete_mutex.unlock();
     }
@@ -305,10 +296,12 @@ void calibrateCameras() {
 void processFeeds() {
     Mat frame1;
     Mat frame2;
+    Mat original1;
+    Mat original2;
     int count = 0;
     bool test = false;
-    bool showRectified = false;
-    bool showDisparity = false;
+    bool showRectified = true;
+    bool showDisparity = true;
 
     time_t startTime;
     time_t loopTime;
@@ -320,34 +313,18 @@ void processFeeds() {
         cameraViewMap[deviceIDs[1]]->getFrame(frame2);
 
         //test
-        Mat test1;
-        Mat test2;
         if (test) {
-            test1 = frame1.clone();
-            test2 = frame2.clone();
+            original1 = frame1.clone();
+            original2 = frame2.clone();
         }
 
-        //Rectify Images
+        // Rectify Images
         stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
+        //temp
+        disparityObject.computeDispMap(frame1, frame2);
 
-        if (test && !test1.empty() && !test2.empty()) {
-            imshow("Original Left", test1);
-            imshow("Original Right", test2);
-        }
-        if (showRectified && !frame1.empty() && !frame2.empty()) {
-            imshow("Rectified Left", frame1);
-            imshow("Rectified Right", frame2);
-        }
-        if (showDisparity && !disparityObject.filtered_disp.empty()) {
-            imshow("Disparity", disparityObject.filtered_disp);
-        }
-
-        //Reconstruction3D reconstruction3D(disparityObject);
         //reconstruction3D.buildPointCloud(frame1, frame2, stereoCalibration);
         //reconstruction3D.retrievePointCloud(cloud);
-
-
-
 
         //PCObjectDetection objectDetection;
         //objectDetection.detectionPlaneSeg(cloud);
@@ -361,6 +338,19 @@ void processFeeds() {
 
         //objectDetection.detectionEuclidianClustering(cloud_XYZ2);
 
+        // Display windows
+        if (test && !original1.empty() && !original2.empty()) {
+            imshow("Original Left", original1);
+            imshow("Original Right", original2);
+        }
+        if (showRectified && !frame1.empty() && !frame2.empty()) {
+            imshow("Rectified Left", frame1);
+            imshow("Rectified Right", frame2);
+        }
+        if (showDisparity && !disparityObject.filtered_disp.empty()) {
+            imshow("Disparity", disparityObject.filtered_disp);
+        }
+
         if (waitKey(30) == 27) {
             destroyAllWindows();
             break;
@@ -370,35 +360,6 @@ void processFeeds() {
         cout << "Number of iterations: " << count << endl;
         time(&loopTime);
         cout << "Timer = " << difftime(loopTime, startTime) << " seconds." << endl << endl;
-    }
-}
-
-// This function lets the user select their preferences for the camera feeds.
-void connectCamerasDialog() {
-    cout << "****Connect Cameras: Options****" << endl << endl;
-
-    cout << "Would you like to customize the camera initialization process? (y/n)" << endl;
-    cout << "[Note: if no is selected, default values will be used for all cameras.]\n" << endl;
-
-    char choice;
-    choice = (char) getch();
-    while (choice != 'y' && choice != 'n') {
-        cerr << "Error: please press y for customization, or press n to use default values." << endl;
-        choice = (char) getch();
-    }
-
-    if (choice == 'y') {
-        //TODO: Customize initialization
-        //default values
-        for (auto id : deviceIDs) {
-            cameraOptionsMap[id] = new CameraConnectOptions(id, 100, true);
-        }
-    }
-    else {
-        //default values
-        for (auto id : deviceIDs) {
-            cameraOptionsMap[id] = new CameraConnectOptions(id, 100, true);
-        }
     }
 }
 
