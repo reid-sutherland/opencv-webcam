@@ -8,31 +8,28 @@
 #ifndef RECONSTRUCTION3D_H_
 #define RECONSTRUCTION3D_H_
 
-// Opencv Header
+// OpenCV
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/core/utility.hpp>
 
-//pcl
+// PCL
 #include <pcl/point_cloud.h>
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-//#include <pcl/common/common_headers.h>
-//#include <pcl/conversions.h>
-//#include <pcl/filters/statistical_outlier_removal.h>
-//#include <pcl/filters/radius_outlier_removal.h>
-//#include <pcl/common/transforms.h>
-//#include <boost/thread/thread.hpp>
 
+// System
 #include <stdio.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctime>
 #include <iostream>
+
+// Local
 #include "StereoCalibration.h"
 #include "StereoRectification.h"
 #include "Disparity.h"

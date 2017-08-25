@@ -4,8 +4,6 @@
 
 #include "CameraView.h"
 
-bool CameraView::m_esc = false;
-
 CameraView::CameraView(int deviceNumber, SharedImageBuffer *sharedImageBuffer) :
     m_sharedImageBuffer(sharedImageBuffer),
     m_deviceNumber(deviceNumber)
@@ -112,20 +110,12 @@ void CameraView::stopProcessingThread() {
 
 void CameraView::updateFrame(Mat &frame) {
     //Display frame from ProcessingThread
-    if (!m_esc) {
-        //imshow(m_windowName, frame);
-    }
+    //imshow(m_windowName, frame);
+
     frame.copyTo(m_currentFrame);
 }
 
 bool CameraView::getFrame(Mat &frame) {
     m_currentFrame.copyTo(frame);
     return true;
-}
-
-bool CameraView::esc() {
-    if (m_processingThread->esc()) {
-        m_esc = true;
-    }
-    return m_esc;
 }

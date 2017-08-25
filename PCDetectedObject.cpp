@@ -5,10 +5,10 @@
  *  Author: Arthur Hamelin
  */
 
-#include "PointCloudDetectedObject.h"
+#include "PCDetectedObject.h"
 
 // Constructor
-PointCloudDetectedObject::PointCloudDetectedObject(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud){
+PCDetectedObject::PCDetectedObject(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud){
 
   this->setObjectCloud(*cloud);
   this->setObjectDistanceFromObjective();
@@ -18,24 +18,24 @@ PointCloudDetectedObject::PointCloudDetectedObject(pcl::PointCloud<pcl::PointXYZ
 }
 
 // This method set the point cloud to be the point cloud of the detected object
-void PointCloudDetectedObject::setObjectCloud(pcl::PointCloud<pcl::PointXYZRGB> cloud){
+void PCDetectedObject::setObjectCloud(pcl::PointCloud<pcl::PointXYZRGB> cloud){
   this->objectCloud = cloud;
 }
 
 // This method set the height of the object.
 // For now this method set the height of the point cloud without calculating the actual height of the object.
-void PointCloudDetectedObject::setObjectHeight(int height){
+void PCDetectedObject::setObjectHeight(int height){
   this->objectHeight = height;
 }
 
 // This method set the width of the object.
 // For now this method set the width of the point cloud without calculating the actual height of the object.
-void PointCloudDetectedObject::setObjectWidth(int width){
+void PCDetectedObject::setObjectWidth(int width){
   this->objectWidth =  width;
 }
 
 // More than just a simple setter, this will compute the minimal distance from the objective.
-void PointCloudDetectedObject::setObjectDistanceFromObjective(){
+void PCDetectedObject::setObjectDistanceFromObjective(){
 
   pcl::PointCloud<pcl::PointXYZRGB> cloud = this->objectCloud;
   double minDistance=0.0;
@@ -53,16 +53,16 @@ void PointCloudDetectedObject::setObjectDistanceFromObjective(){
 }
 
 // This method return the height of the detected object.
-int PointCloudDetectedObject::getObjectHeight(){
+int PCDetectedObject::getObjectHeight(){
   return this->objectHeight;
 }
 
 // This method return the height of the detected object.
-int PointCloudDetectedObject::getObjectWidth(){
+int PCDetectedObject::getObjectWidth(){
   return this->objectWidth;
 }
 
 // This method return the distance of the detected object from the camera objective.
-double PointCloudDetectedObject::getObjectDistanceFromObjective(){
+double PCDetectedObject::getObjectDistanceFromObjective(){
   return this->objectDistanceFromObjective;
 }

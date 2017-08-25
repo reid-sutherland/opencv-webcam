@@ -13,7 +13,6 @@ ProcessingThread::ProcessingThread(SharedImageBuffer *sharedImageBuffer, int dev
     m_doStop = false;
     m_statsData.averageFPS = 0;
     m_statsData.nFramesProcessed = 0;
-    m_esc = false;
 }
 
 void ProcessingThread::run()
@@ -48,13 +47,16 @@ void ProcessingThread::run()
         else {
             cout << "getByDeviceNumber == NULL" << endl;
         }
+
         //Display frame count
+        /*
         if (frameCount == (pow(10, frameCountDegree))) {
             frameCountDegree++;         //increments every time a digit is added to frameCount (i.e. 100, 1000, etc.)
             rectVertexTwoX += 10;       //extends the whitespace rectangle to fit the new frameCount (which is now one digit bigger)
         }
         rectangle(m_currentFrame, cv::Point(0, 0), cv::Point(rectVertexTwoX, 16), cv::Scalar(255, 255, 255), -1);
         putText(m_currentFrame, to_string(frameCount), cv::Point(3, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+        */
 
         /*
         //Display image buffer bar (% of buffer full)
@@ -71,11 +73,6 @@ void ProcessingThread::run()
         // Inform GUI thread of new frame
         emitNewFrame(m_currentFrame);
 
-        //if Esc is pressed, quit the run() loop
-        if (waitKey(10) == 27) {
-            m_esc = true;
-        }
-
         //increment frameCount
         frameCount++;
     }
@@ -85,10 +82,6 @@ void ProcessingThread::run()
 
 void ProcessingThread::emitNewFrame(Mat frame) {
     m_parentCameraView->updateFrame(frame);
-}
-
-bool ProcessingThread::esc() {
-    return m_esc;
 }
 
 void ProcessingThread::stop()

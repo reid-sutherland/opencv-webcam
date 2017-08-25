@@ -8,93 +8,85 @@
 #include "Disparity.h"
 
 Disparity::Disparity()
-    :method("bm"), wls_lambda(8000.0),
+    : method("bm"), wls_lambda(8000.0),
       filterType("wls_no_conf"), wls_sigma(1.5), vis_mult(1.0),
-      numberOfDisparities(160), SADWindowSize(-1), no_downscale(false),
-      calibrationObject(StereoCalibration::Instance())
+      numberOfDisparities(160), SADWindowSize(-1), downscale(true),
+      stereoCalibration(StereoCalibration::Instance())
 {
-//    loadDisparityParam();
+    std::cout << "#$%^&Disparity Constructor" << std::endl;
 }
 
 Disparity::~Disparity() {
-	// TODO Auto-generated destructor stub
+
 }
 
-
+/*  this function is seemingly pointless
 int Disparity::computeNormDisp(cv::Mat imgLeft, cv::Mat imgRight, bool rectify)
 {
     return computeDispMap(imgLeft, imgRight, rectify);
 }
+*/
 
 int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
-
 {
     if (imLeft.empty() )
     {
-        //ccLog::Error("[computeDispMap] Left image is empty.");
+        std::cerr << "[computeDispMap] Error: Left image is empty." << std::endl;
         return -1;
     }
 
     if (imRight.empty() )
     {
-        //ccLog::Error("[computeDispMap] Right image is empty.");
+        std::cerr << "[computeDispMap] Error: Right image is empty." << std::endl;
         return -1;
     }
 
     if(rectify)
     {
-        calibrationObject.rectifyStereoImg(imLeft, imRight, imLeft, imRight);
+        stereoCalibration.rectifyStereoImg(imLeft, imRight, imLeft, imRight);
     }
-
-#ifdef DEBUG
-    printParameter();
-#endif
 
     cv::Mat left_for_matcher, right_for_matcher;
     cv::Mat semi_filtered_disp;
-    cv::Mat left_disp,right_disp;
+    cv::Mat left_disp, right_disp;
 
-#ifdef DEBUG
+    #ifdef DEBUG
     cv::Mat conf_map;
     conf_map = cv::Mat(imLeft.rows,imLeft.cols,CV_8U);
     conf_map = cv::Scalar(255);
-#endif
+    #endif
+
     cv::Rect ROI;
     cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter;
-#ifdef STAT
+
+    #ifdef STAT
     double matching_time, filtering_time;
-#endif
+    #endif
 
     if(SADWindowSize<0) //user provided window_size value
     {
-        if(method.compare("sgbm")==0)
+        if (method == "sgbm")
             SADWindowSize = 3; //default window size for SGBM
-        else if(!no_downscale && method.compare("bm")==0 && filterType.compare("wls_conf")==0)
+        else if(downscale && method == "bm" && filterType == "wls_conf")
             SADWindowSize = 7; //default window size for BM on downscaled views (downscaling is performed only for wls_conf)
         else
             SADWindowSize = 15; //default window size for BM on full-sized views
     }
 
-    if(numberOfDisparities<=0 || numberOfDisparities%16!=0)
+    if (numberOfDisparities<=0 || numberOfDisparities%16!=0)
     {
+        std::cerr << "[computeDispMap] Error: Incorrect max_disparity value: it should be positive and divisible by 16." << std::endl;
+        return -1;
+    }
 
-#ifdef DEBUG
-        std::cout<<"Incorrect max_disparity value: it should be positive and divisible by 16";
-#endif
-        //ccLog::Error("[computeDispMap] Incorrect max_disparity value: it should be positive and divisible by 16.");
+    if (SADWindowSize<=0 || SADWindowSize%2!=1)
+    {
+        std::cerr << "[computeDispMap] Error: Incorrect window_size value: it should be positive and odd." << std::endl;
         return -1;
     }
-    if(SADWindowSize<=0 || SADWindowSize%2!=1)
+    if (filterType == "wls_conf") // filtering with confidence (significantly better quality than wls_no_conf)
     {
-#ifdef DEBUG
-        std::cout<<"Incorrect window_size value: it should be positive and odd";
-#endif
-        //ccLog::Error("[computeDispMap] Incorrect window_size value: it should be positive and odd.");
-        return -1;
-    }
-    if(filterType.compare("wls_conf")==0) // filtering with confidence (significantly better quality than wls_no_conf)
-    {
-        if(!no_downscale)
+        if (downscale)
         {
             // downscale the views to speed-up the matching stage, as we will need to compute both left
             // and right disparity maps for confidence map computation
@@ -112,7 +104,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             right_for_matcher = imRight.clone();
         }
 
-        if(method.compare("bm")==0)
+        if (method == "bm")
         {
             //! [matching]
             cv::Ptr<cv::StereoBM> left_matcher = cv::StereoBM::create(numberOfDisparities,SADWindowSize);
@@ -122,17 +114,19 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             cv::cvtColor(left_for_matcher,  left_for_matcher,  cv::COLOR_BGR2GRAY);
             cv::cvtColor(right_for_matcher, right_for_matcher, cv::COLOR_BGR2GRAY);
 
-#ifdef STAT
+            #ifdef STAT
             matching_time = (double)cv::getTickCount();
-#endif
+            #endif
+
             left_matcher->compute(left_for_matcher, right_for_matcher,left_disp);
             right_matcher->compute(right_for_matcher,left_for_matcher, right_disp);
-#ifdef STAT
+
+            #ifdef STAT
             matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-#endif
+            #endif
             //! [matching]
         }
-        else if(method.compare("sgbm")==0)
+        else if (method == "sgbm")
         {
             cv::Ptr<cv::StereoSGBM> left_matcher  = cv::StereoSGBM::create(0,numberOfDisparities, SADWindowSize);
             left_matcher->setP1(24*SADWindowSize*SADWindowSize);
@@ -142,42 +136,42 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             wls_filter = cv::ximgproc::createDisparityWLSFilter(left_matcher);
             cv::Ptr<cv::StereoMatcher> right_matcher = cv::ximgproc::createRightMatcher(left_matcher);
 
-#ifdef STAT
+            #ifdef STAT
             matching_time = (double)cv::getTickCount();
-#endif
+            #endif
+
             left_matcher-> compute(left_for_matcher, right_for_matcher,left_disp);
             right_matcher->compute(right_for_matcher,left_for_matcher, right_disp);
-#ifdef STAT
+
+            #ifdef STAT
             matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-#endif
+            #endif
         }
         else
         {
-#ifdef DEBUG
-            std::cout<<"Unsupported algorithm";
-#endif
-            //ccLog::Error("[computeDispMap] Unsupported algorithm.");
+            std::cerr << "[computeDispMap] Error: Unsupported algorithm." << std::endl;
             return -1;
         }
 
         //! [filtering]
         wls_filter->setLambda(wls_lambda);
         wls_filter->setSigmaColor(wls_sigma);
-#ifdef STAT
+        #ifdef STAT
         filtering_time = (double)cv::getTickCount();
-#endif
+        #endif
         wls_filter->filter(left_disp,imLeft, semi_filtered_disp,right_disp);
-#ifdef STAT
+        #ifdef STAT
         filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
-#endif
+        #endif
         //! [filtering]
-#ifdef DEBUG
+
+        #ifdef DEBUG
         conf_map = wls_filter->getConfidenceMap();
-#endif
+        #endif
 
         // Get the ROI that was used in the last filter call:
         ROI = wls_filter->getROI();
-        if(!no_downscale)
+        if (downscale)
         {
             // upscale raw disparity and ROI back for a proper comparison:
             cv::resize(left_disp,left_disp,cv::Size(),2.0,2.0);
@@ -185,7 +179,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             ROI = cv::Rect(ROI.x*2,ROI.y*2,ROI.width*2,ROI.height*2);
         }
     }
-    else if(filterType.compare("wls_no_conf")==0)
+    else if (filterType == "wls_no_conf")
     {
         /* There is no convenience function for the case of filtering with no confidence, so we
         will need to set the ROI and matcher parameters manually */
@@ -193,7 +187,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
         left_for_matcher  = imLeft.clone();
         right_for_matcher = imRight.clone();
 
-        if(method.compare("bm")==0)
+        if (method == "bm")
         {
             cv::Ptr<cv::StereoBM> matcher  = cv::StereoBM::create(numberOfDisparities,SADWindowSize);
             matcher->setTextureThreshold(0);
@@ -204,15 +198,15 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             wls_filter = cv::ximgproc::createDisparityWLSFilterGeneric(false);
             wls_filter->setDepthDiscontinuityRadius((int)ceil(0.33*SADWindowSize));
 
-#ifdef STAT
+            #ifdef STAT
             matching_time = (double)cv::getTickCount();
-#endif
+            #endif
             matcher->compute(left_for_matcher,right_for_matcher,left_disp);
-#ifdef STAT
+            #ifdef STAT
             matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-#endif
+            #endif
         }
-        else if(method.compare("sgbm")==0)
+        else if (method == "sgbm")
         {
             cv::Ptr<cv::StereoSGBM> matcher  = cv::StereoSGBM::create(0,numberOfDisparities,SADWindowSize);
             matcher->setUniquenessRatio(0);
@@ -225,57 +219,51 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             wls_filter = cv::ximgproc::createDisparityWLSFilterGeneric(false);
             wls_filter->setDepthDiscontinuityRadius((int)ceil(0.5*SADWindowSize));
 
-#ifdef STAT
+            #ifdef STAT
             matching_time = (double)cv::getTickCount();
-#endif
+            #endif
             matcher->compute(left_for_matcher,right_for_matcher,left_disp);
-#ifdef STAT
+            #ifdef STAT
             matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
-#endif
+            #endif
         }
         else
         {
-#ifdef DEBUG
-            std::cout<<"Unsupported algorithm";
-#endif
-            //ccLog::Error("[computeDispMap] Unsupported algorithm.");
+            std::cerr << "[computeDispMap] Error: Unsupported algorithm." << std::endl;
             return -1;
         }
 
         wls_filter->setLambda(wls_lambda);
         wls_filter->setSigmaColor(wls_sigma);
-#ifdef STAT
+        #ifdef STAT
         filtering_time = (double)cv::getTickCount();
-#endif
+        #endif
         wls_filter->filter(left_disp,imLeft,semi_filtered_disp,cv::Mat(),ROI);
-#ifdef STAT
+        #ifdef STAT
         filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
-#endif
+        #endif
     }
     else
     {
-#ifdef DEBUG
-        std::cout<<"Unsupported filter";
-#endif
-        //ccLog::Error("[computeDispMap] Unsupported filter.");
+        std::cerr << "[computeDispMap] Error: Unsupported filter." << std::endl;
         return -1;
     }
 
-#ifdef DEBUG
+    #ifdef DEBUG
     //collect and print all the stats:
     std::cout.precision(2);
-#ifdef STAT
+    #ifdef STAT
     std::cout<<"Matching time:  "<<matching_time<<"s"<<std::endl;
     std::cout<<"Filtering time: "<<filtering_time<<"s"<<std::endl;
-#endif
+    #endif
     std::cout<<std::endl;
-#endif
+    #endif
 
     //! Get filter disparity
-    cv::ximgproc::getDisparityVis(semi_filtered_disp, filtered_disp,vis_mult);
+    cv::ximgproc::getDisparityVis(semi_filtered_disp, filtered_disp, vis_mult);
 
     //! Get raw disparity
-    cv::ximgproc::getDisparityVis(left_disp, raw_disp,vis_mult);
+    cv::ximgproc::getDisparityVis(left_disp, raw_disp, vis_mult);
 
     return 0;
 }
@@ -304,11 +292,10 @@ cv::Rect Disparity::computeROI(cv::Size2i src_sz, cv::Ptr<cv::StereoMatcher> mat
 
 int Disparity::saveDisparityMap(std::string file_path)
 {
-    const std::string filename = file_path;
     const std::string filename_Norm = ("norm_" + file_path);
     if (file_path != "." || file_path != " ")
     {
-        cv::imwrite(filename, this->raw_disp);
+        cv::imwrite(file_path, this->raw_disp);
         cv::imwrite(filename_Norm, this->filtered_disp);
         return 1;
     }
@@ -317,20 +304,19 @@ int Disparity::saveDisparityMap(std::string file_path)
 
 int Disparity::saveDisparityParam(std::string file_path)
 {
-    const std::string filename = file_path;
     if (file_path != "." || file_path != " ")
     {
-        cv::FileStorage fs(filename, cv::FileStorage::WRITE);
+        cv::FileStorage fs(file_path, cv::FileStorage::WRITE);
         if (!fs.isOpened())
         {
-            //ccLog::Warning("[saveDisparityParam] %s could not be opened.", filename.c_str());
+            std::cerr << "[saveDisparityParam] " << file_path.c_str() << " could not be opened." << std::endl;
             return 0;
         }
         else
         {
             fs << "SADWindowSize" << this->SADWindowSize;
             fs << "numberOfDisparities" << this->numberOfDisparities;
-            fs << "no_downscale" << this->no_downscale;
+            fs << "downscale" << this->downscale;
             fs << "filterType" << this->filterType;
             fs << "method" << this->method;
             fs << "wls_lambda" << this->wls_lambda;
@@ -338,7 +324,6 @@ int Disparity::saveDisparityParam(std::string file_path)
             fs << "vis_mult" << this->vis_mult;
 
             fs.release();
-            //ccLog::Print("[saveDisparityParam] Disparity matrices saved to %s.", filename.c_str());
         }
         return 1;
     }
@@ -347,59 +332,30 @@ int Disparity::saveDisparityParam(std::string file_path)
 
 int Disparity::loadDisparityParam(std::string file_path)
 {
-    const std::string filename = file_path;
     if (file_path != "." || file_path != " ")
     {
-        cv::FileStorage fs(filename, cv::FileStorage::READ);
+        cv::FileStorage fs(file_path, cv::FileStorage::READ);
         if (!fs.isOpened())
         {
-            //ccLog::Warning("[loadDisparityParam] %s could not be opened.", filename.c_str());
+            std::cerr << "[loadDisparityParam] " << file_path.c_str() << " could not be opened." << std::endl;
             return 0;
         }
         else
         {
-            bool no_ds;
-            fs["no_downscale"] >> no_ds;
+            bool ds;
+            fs["downscale"] >> ds;
             setSADWindowSize(fs["SADWindowSize"]);
             setNumberOfDisparities(fs["numberOfDisparities"]);
-            setDownscale(no_ds);
+            setDownscale(ds);
             setFilterType(fs["filterType"]);
             setMethod(fs["method"]);
             setWlsLambda(fs["wls_lambda"]);
             setWlsSigma(fs["wls_sigma"]);
             setVisMult(fs["vis_mult"]);
-//            fs["SADWindowSize"] >> this->SADWindowSize;
-//            fs["numberOfDisparities"] >> this->numberOfDisparities;
-//            fs["no_downscale"] >> this->no_downscale;
-//            fs["filterType"] >> this->filterType;
-//            fs["method"] >> this->method;
-//            fs["wls_lambda"] >> this->wls_lambda;
-//            fs["wls_sigma"] >> this->wls_sigma;
-//            fs["vis_mult"] >> this->vis_mult;
 
             fs.release();
-            //ccLog::Print("[loadDisparityParam] Disparity parameter loaded successfully to %s.", filename.c_str());
         }
         return 1;
     }
     return 0;
 }
-
-void Disparity::printParameter()
-{
-
-    /*
-    ccLog::Print("[Disparity] --- Disparity Parameters ---.");
-    ccLog::Print("[Disparity] Numberofdisparity: %d.", this->numberOfDisparities);
-    ccLog::Print("[Disparity] SADWindowSize: %d.", this->SADWindowSize);
-    ccLog::Print("[Disparity] no_downscale: %d.", this->no_downscale);
-    ccLog::Print("[Disparity] filterType: %s.", this->filterType.c_str());
-    ccLog::Print("[Disparity] method: %s.", this->method.c_str());
-    ccLog::Print("[Disparity] wls_lambda: %lf.", this->wls_lambda);
-    ccLog::Print("[Disparity] wls_sigma: %lf.", this->wls_sigma);
-    ccLog::Print("[Disparity] vis_mult: %lf.", this->vis_mult);
-
-    ccLog::Print("[Disparity] --- End of displaying parameters ---.");
-    */
-}
-

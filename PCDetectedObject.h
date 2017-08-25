@@ -9,11 +9,9 @@
 #define POINTCLOUDDETECTEDOBJECT_H_
 
 // PCL Library
-
 #include <pcl/io/pcd_io.h>
 
 // System
-
 #include <stdio.h>
 #include <string.h>
 #include <stdio.h>
@@ -21,7 +19,7 @@
 #include <ctime>
 #include <iostream>
 
-class PointCloudDetectedObject{
+class PCDetectedObject{
 
 private:
 
@@ -40,7 +38,7 @@ private:
 public:
 
   // Constructor
-  PointCloudDetectedObject(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud);
+  PCDetectedObject(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud);
   
   // Methods
   

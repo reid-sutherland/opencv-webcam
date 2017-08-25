@@ -29,23 +29,20 @@ StereoCalibration& StereoCalibration::Instance()
 }
 
 void StereoCalibration::printParameter()
-{ 
-    printf(" --- StereoCalibration Parameters ---  \n" );
+{
+    std::cout << " --- StereoCalibration Parameters --- " << std::endl;
 }
 
 
-/**
- * Cette fonction permet de sauvegarder dans un fichier les parametres resultants de la calibration dans un fichier.
-*/
-int StereoCalibration::saveCalib()
+// This function saves the calibration parameters of the cameras to a file.
+bool StereoCalibration::saveCalib()
 {
-    printf("Saving calibration matrices to %s \n", this->calib_filename.c_str());
     cv::FileStorage fs(this->calib_filename, cv::FileStorage::WRITE);
 
     if (!fs.isOpened())
     {
-        printf("Camera Calibration file %s is not found \n", this->calib_filename.c_str());
-        return -1;
+        std::cout << "Camera Calibration file " << this->calib_filename << " is not found." << std::endl;
+        return false;
     }
 
     fs << "CM1" << this->CM1;
@@ -70,24 +67,21 @@ int StereoCalibration::saveCalib()
     fs << "validRoiR" << this->validRoi[1];
 
     fs.release();
-    printf("Calibration matrices saved to %s \n", this->calib_filename.c_str());
+    std::cout << "Calibration matrices saved to " << this->calib_filename.c_str() << std::endl;
 
-    return 0;
+    return true;
 }
 
 
-/**
- * Cette fonction permet de lire dans un fichier les parametres de la calibration dans un fichier.
-*/
-int StereoCalibration::loadCalib()
+// This function loads the calibration paremeters of the cameras from a file.
+bool StereoCalibration::loadCalib()
 {
-    printf("Loading calibration matrices from %s \n", this->calib_filename.c_str());
     cv::FileStorage fs(this->calib_filename, cv::FileStorage::READ);
 
     if (!fs.isOpened())
     {
-        printf("Camera Calibration file %s is not found \n", this->calib_filename.c_str());
-        return -1;
+        std::cout << "Camera Calibration file " << this->calib_filename.c_str() << " is not found." << std::endl;
+        return false;
     }
 
     fs["CM1"] >> this->CM1;
@@ -113,10 +107,10 @@ int StereoCalibration::loadCalib()
     fs["validRoiR"] >> this->validRoi[1];
 
     fs.release();
-    printf("Calibration matrices successfully loaded from %s. \n", this->calib_filename.c_str());
+    std::cout << "Calibration matrices successfully loaded from " << this->calib_filename.c_str() << "." << std::endl;
     this->calib_param_loaded = true;
 
-    return 0;
+    return true;
 }
 
 
@@ -155,7 +149,7 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
     {
         if( framesize == cv::Size() || frame_left.size() == framesize ){
             framesize = frame_left.size();
-            std::cout << "Framesize is : " << frame_left.size() << std::endl;
+            std::cout << "Framesize: " << frame_left.size() << std::endl;
           }
         else
         {
@@ -206,8 +200,6 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
     if (found_left && found_right)//Sub pixel optimization for corner locations.
     {
         //! adjusts the corner locations with sub-pixel accuracy to maximize the certain cornerness criteria
-        //cv::cornerSubPix(gray_left, corners_left, cv::Size(19, 13), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
-        //cv::cornerSubPix(gray_right, corners_right, cv::Size(19, 13), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
         cv::cornerSubPix(gray_left, corners_left, cv::Size(11,11), cv::Size(-1,-1),
                          cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 30, 0.01));
         cv::cornerSubPix(gray_right, corners_right, cv::Size(11,11), cv::Size(-1,-1),
@@ -226,8 +218,8 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
     } else
         return -1;
 
-    printf("Number of chessboard detected: %d (size of objectPoint = %d) \n", nimages, (int) this->objectPoints.size());
-    std::cout << "Capture done." << std::endl << std::endl;
+    std::cout << "Number of calibration frames captured: " << nimages << std::endl;
+    std::cout << "Capture successful." << std::endl << std::endl;
     return result;
 }
 
@@ -235,7 +227,7 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
 // (Intrinsic and extrinsic parameters)
 int StereoCalibration::stereoCalib(bool saveResult)
 {
-    printf("Running stereo calibration ... \n");
+    std::cout << "\n***Running stereo calibration...***\n" << std::endl;
 
     if( nimages < min_poses )
     {
@@ -258,7 +250,7 @@ int StereoCalibration::stereoCalib(bool saveResult)
                                      cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, 1e-5) );
 
     calib_error = rms;
-    printf("done with RMS error %.2lf \n", rms);
+    printf("Done with RMS error %.2lf \n", rms);
 
     // CALIBRATION QUALITY CHECK
     // because the output fundamental matrix implicitly
@@ -290,7 +282,7 @@ int StereoCalibration::stereoCalib(bool saveResult)
         }
         npoints += npt;
     }
-    printf("average epipolar err = %.2lf \n", err/npoints);
+    printf("Average epipolar err = %.2lf \n", err/npoints);
 
 //    cv::Mat QR;
     cv::stereoRectify(CM1, D1, CM2, D2, framesize, R, T, R1, R2, P1, P2, Q,
@@ -332,29 +324,23 @@ int StereoCalibration::stereoCalib(bool saveResult)
         P1 = CM1;
         P2 = CM2;
     }
-    printf("Calibration complete. RMSE = %.2lf \n", rms);
+    printf("\n***Calibration complete. RMSE = %.2lf***\n\n", rms);
 
     // Tell that the calibration parameters is available
     calib_param_loaded = true;
     if (saveResult){
         saveCalib();
     }
-    //reset();
 
     return 0;
 }
 
-int StereoCalibration::rectifyStereoImg(cv::Mat& imgLeft, cv::Mat& imgRight,
+// This function rectifies the input images and returns the rectified images (by reference)
+int StereoCalibration::rectifyStereoImg(cv::Mat imgLeft, cv::Mat imgRight,
                                         cv::Mat& rectImgLeft, cv::Mat& rectImgRight)
-// cv::Mat& rectImgLeft, cv::Mat& rectImgRight
 {
-//    printf("Applying of rectification on images.");
-
-//    printf("rectifyStereoImg: size(cameraMatrixL, distCoeffsL, cameraMatrixR, distCoeffsR) = (%d, %d, %d, %d).",
-//                     CM1.size(), D1.size(), CM2.size(), D2.size());
-
-//    cv::Mat rImgLeft, rImgRight;
     cv::Mat map1x, map1y, map2x, map2y;
+
     //Precompute maps for cv::remap()
     cv::initUndistortRectifyMap(CM1, D1, R1, P1, framesize, CV_16SC2, map1x, map1y);
     cv::initUndistortRectifyMap(CM2, D2, R2, P2, framesize, CV_16SC2, map2x, map2y);
@@ -367,16 +353,13 @@ int StereoCalibration::rectifyStereoImg(cv::Mat& imgLeft, cv::Mat& imgRight,
     if(map1x.size() == cv::Size() || map1y.size() == cv::Size()
             || map2x.size() == cv::Size() || map2y.size() == cv::Size())
     {
-        //ccLog::Error("Rectification of image fail");
+        std::cerr << "Error: Rectification of image failed." << std::endl;
         return -1;
     }
 
     //! Applaying rectification of images
     cv::remap(imgLeft, rectImgLeft, map1x, map1y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
     cv::remap(imgRight, rectImgRight, map2x, map2y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
-
-    //cv::remap(imgLeft, imgLeftRect, map1x, map1y, cv::INTER_LINEAR);
-    //cv::remap(imgRight, imgRightRect, map2x, map2y, cv::INTER_LINEAR);
 
     //! Checking for valid ROI
 //    printf("ValidROI area is: [Left]%d and [Right]%d", validRoi[0].area(), validRoi[1].area());
@@ -412,9 +395,7 @@ int StereoCalibration::rectifyStereoImg(cv::Mat& imgLeft, cv::Mat& imgRight,
     return 0;
 }
 
-/**
- * This function is to change the calibration pathName
- */
+// This function is to change the calibration path name
 void StereoCalibration::setCalibFilename(std::string _calib_filename)
 {
     this->calib_filename = _calib_filename;
@@ -489,7 +470,7 @@ int StereoCalibration::stereoCalib(bool saveResult, double& rmse)
         return -1;
     }
 
-    printf("Number of frame use: %d \n", objectPoints.size());
+    printf("Number of frame use: %d \n", (int)objectPoints.size());
     rmse = cv::stereoCalibrate(this->objectPoints, this->imagePoints_left, this->imagePoints_right, this->CM1, this->D1, this->CM2,
                                this->D2, this->framesize, this->R, this->T, this->E, this->F, cv::CALIB_FIX_INTRINSIC,
                                cvTermCriteria(CV_TERMCRIT_ITER + CV_TERMCRIT_EPS, 100, 1e-5) );

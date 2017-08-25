@@ -8,17 +8,20 @@
 #ifndef STEREOCALIBRATION_H_
 #define STEREOCALIBRATION_H_
 
-// Opencv Header
+// OpenCV
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+// System
 #include <stdio.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctime>
 #include <iostream>
+
+// Local
 #include "FilenameManagement.h"
 
 class StereoCalibration {
@@ -96,10 +99,10 @@ public:
     int stereoCalib(bool saveResult, double &rmse);
 
     //! function to save calibration parameters in the calib_filename
-    int saveCalib();
+    bool saveCalib();
 
     //! reload calibration parameters
-    int loadCalib();
+    bool loadCalib();
 
     //! To change calibration path name
     void setCalibFilename(std::string calib_filename);
@@ -123,7 +126,7 @@ public:
     }
 
     //! Rectify two images
-    int rectifyStereoImg(cv::Mat& imgLeft, cv::Mat& imgRight,
+    int rectifyStereoImg(cv::Mat imgLeft, cv::Mat imgRight,
                           cv::Mat& rectImgLeft, cv::Mat& rectImgRight);
     //! Setters
     void setWeight(int w) { board_w = w; }
@@ -143,7 +146,6 @@ public:
         CM2 = cv::Mat(3, 3, CV_64FC1);
         instantiated = 10;
         useCalibrated = true;
-        //if(!calib_param_loaded) loadCalib();
     }
 
     //! Calib parameters

@@ -5,17 +5,27 @@
  *  Author: Arthur Hamelin
  */
 
-#include "PointCloudObjectDetection.h"
-#include "PointCloudDetectedObject.h"
+#include "PCObjectDetection.h"
+#include "PCDetectedObject.h"
+
+//PCL
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/surface/convex_hull.h>
+#include <pcl/segmentation/extract_polygonal_prism_data.h>
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/segmentation/extract_clusters.h>
 
 // Constructor
-PointCloudObjectDetection::PointCloudObjectDetection(){
+PCObjectDetection::PCObjectDetection(){
 
 }
 
-// This method is used to remove the planes form the pointcloud given.
+// This method is used to remove the planes from the pointcloud given.
 // It will be usefull to detect several objects inside the given point cloud.
-int PointCloudObjectDetection::detectionPlaneSeg(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud){
+int PCObjectDetection::detectionPlaneSeg(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud){
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr convexHull(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -34,7 +44,7 @@ int PointCloudObjectDetection::detectionPlaneSeg(pcl::PointCloud<pcl::PointXYZRG
   pcl::PointIndices::Ptr planeIndices(new pcl::PointIndices);
   segmentation.segment(*planeIndices, *coefficients);
 
-  if (planeIndices->indices.size() == 0)
+  if (planeIndices->indices.empty())
           std::cout << "Could not find a plane in the scene." << std::endl;
   else
   {
@@ -75,7 +85,7 @@ int PointCloudObjectDetection::detectionPlaneSeg(pcl::PointCloud<pcl::PointXYZRG
       //std::cout << "objects point cloud " << objects->points.size()<< std::endl;
 
       // Saving the Segmentation PointCloud (that can be returned).
-      pcl::io::savePCDFileASCII("/home/arthur/Documents/Internship/stereovis/applicationFiles/PlanarSeg/planarSeg.pcd", *objects);
+      pcl::io::savePCDFileASCII("/home/reid/opencv-webcam/applicationFiles/PlanarSeg/planarSeg.pcd", *objects);
 
       pcl::visualization::CloudViewer viewerObjects("Objects on table");
       viewerObjects.showCloud(objects);
@@ -93,7 +103,7 @@ int PointCloudObjectDetection::detectionPlaneSeg(pcl::PointCloud<pcl::PointXYZRG
 
 // This method is used to detect different clusters inside the point cloud.
 // Due to their min size, I assume that all clusters detected are objects we anted to detect inside the point cloud.
-int PointCloudObjectDetection::detectionEuclidianClustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud){
+int PCObjectDetection::detectionEuclidianClustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr& cloud){
 
   // kd-tree object for searches.
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kdtree(new pcl::search::KdTree<pcl::PointXYZRGB>);
@@ -139,7 +149,7 @@ int PointCloudObjectDetection::detectionEuclidianClustering(pcl::PointCloud<pcl:
     std::cout << "Cluster saved succesfully. \n" << std::endl;
 
     // Create a detectedObject from the cluster and estimate distance to it and its size.
-    PointCloudDetectedObject object = PointCloudDetectedObject(cluster);
+    PCDetectedObject object = PCDetectedObject(cluster);
     std::cout << "Distance from objective is : " << object.getObjectDistanceFromObjective() << " meters." << std::endl;
 
 

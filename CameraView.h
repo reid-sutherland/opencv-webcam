@@ -32,7 +32,6 @@ public:
     bool connectToCamera(bool dropFrame, int width, int height);
     void updateFrame(Mat &frame);
     bool getFrame(Mat &frame);
-    bool esc();
 
 private:
     void stopCaptureThread();
@@ -40,7 +39,6 @@ private:
 
     int m_deviceNumber;
     bool m_isCameraConnected;
-    static bool m_esc;
     string m_windowName;
     Mat m_currentFrame;
 

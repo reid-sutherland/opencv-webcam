@@ -21,7 +21,10 @@ MyCalibration::MyCalibration(){
 }
 
 // This method use StereoCalibration instance to calibrate cameras (made for 2 cameras)
-int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*> cvMap, StereoCalibration& sc){
+int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*> cvMap, StereoCalibration& sc) {
+    cout << "\n***Starting chessboard detection now...***" << endl;
+    cout << "Press c to capture a frame. Note: at least 5 frames are required to calibrate cameras." << endl << endl;
+
     sc.reset();
     sc.init();
 
@@ -38,7 +41,7 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
         }
         else {
             // Apply the classifier to the frame
-            chessboardDetection( frame1, frame2);
+            chessboardDetection(frame1, frame2);
             imshow( "Camera 1", res_left );
             imshow( "Camera 2", res_right );
         }
@@ -53,7 +56,7 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
     cv::destroyWindow("Camera 1");
     cv::destroyWindow("Camera 2");
 
-    cout << "Chessboard detection done." << endl;
+    cout << "***Chessboard detection done.***" << endl;
 
     calibrateCameras(sc);
 }
@@ -104,10 +107,10 @@ int MyCalibration::calibrateCameras(StereoCalibration& sc){
 
   int resultat = sc.stereoCalib(true);  //true - always save result
   if (resultat == -1) {
-    std::cout << "\nCalibration failed. \n" << std::endl;
+    std::cout << "\nCalibration failed.\n" << std::endl;
   }
   else{
-    std::cout << "\nCalibration done. \n" << std::endl;
+    std::cout << "\nCalibration done.\n" << std::endl;
   }
   return resultat;
 }

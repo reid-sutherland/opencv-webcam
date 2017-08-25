@@ -8,13 +8,13 @@
 
 
 Reconstruction3D::Reconstruction3D(Disparity& disparity)
-    :disp(disparity), maxDepth(1000.0), alpha(5.0), handleMissingValues(true), bufsize(1),
+    : disp(disparity), maxDepth(1000.0), alpha(5.0), handleMissingValues(true), bufsize(1),
      point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
 }
 
 Reconstruction3D::~Reconstruction3D() {
-	// TODO Auto-generated destructor stub
+
 }
 
 
@@ -36,20 +36,10 @@ int Reconstruction3D::buildPointCloud(cv::Mat& img_rgb_left, cv::Mat& img_rgb_ri
         cv::resize(img_rgb_right, img_rgb_right, sc.getFrameSize());
     }
 
-    //! Rectification of images
-    cout << "Starting rectification...";
-    sc.rectifyStereoImg(img_rgb_left, img_rgb_right, img_rgb_left, img_rgb_right);
-#ifdef DEBUG
-    cv::imshow("Rectify Image L", img_rgb_left);
-    cv::imshow("Rectify Image R", img_rgb_right);
-#endif
-    cout << "\tEnd of rectification process." << endl;
-
     //! Computing of disparity Map
-    //Disparity disp("SGBM");
     cout << "Starting disparity...";
 
-    if (disp.computeNormDisp(img_rgb_left, img_rgb_right) < 0 )
+    if (disp.computeDispMap(img_rgb_left, img_rgb_right) < 0 )
     {
         cerr << "Error: [buildPointCloud] Internal error on disparity process." << endl;
         return -1;
@@ -65,10 +55,10 @@ int Reconstruction3D::buildPointCloud(cv::Mat& img_rgb_left, cv::Mat& img_rgb_ri
 
     //! Declaration of 3D reconstruction parameter
     cv::Mat Q = sc.getQMatrix();
-    cout << "Getting Q matrix..." << endl;
 
     //! Reprojection 3D
     cout << "Starting 3D reprojection...";
+
 #ifdef TestVIZ
     cv::Mat XYZ(img_disparity.size(), CV_32FC3);
     cv::reprojectImageTo3D(img_disparity, XYZ, Q);
@@ -92,6 +82,7 @@ int Reconstruction3D::buildPointCloud(cv::Mat& img_rgb_left, cv::Mat& img_rgb_ri
            myWindow.spinOnce(1, true);
        }
 #endif
+
     CustomProject3d(Q, img_rgb_left, img_disparity, point_cloud_ptr);
     cout << "\tEnd of 3D reprojection." << endl;
 
@@ -134,12 +125,14 @@ int Reconstruction3D::CustomProject3d(cv::Mat Q, cv::Mat img_rgb, cv::Mat img_di
 
             //Insert info into point cloud structure
             pcl::PointXYZRGB point;
-            point.x = px;
-            point.y = py;
-            point.z = pz;
+            point.x = (float) px;
+            point.y = (float) py;
+            point.z = (float) pz;
             uint32_t rgb = (static_cast<uint32_t>(pr) << 16 |
                             static_cast<uint32_t>(pg) << 8 | static_cast<uint32_t>(pb));
             point.rgb = *reinterpret_cast<float*>(&rgb);
+                /*using static_cast results in the error: invalid static_cast
+                  from type ‘uint32_t* {aka unsigned int*}’ to type ‘float*’ */
             point_cloud_ptr->points.push_back(point);
         }
     }
@@ -149,6 +142,6 @@ int Reconstruction3D::CustomProject3d(cv::Mat Q, cv::Mat img_rgb, cv::Mat img_di
 }
 
 void Reconstruction3D::printParameter()
-{ 
-    printf(" --- Reconstruction3D Parameters --- \n");
+{
+    std::cout << " --- Reconstruction3D Parameters --- " << std::endl;
 }

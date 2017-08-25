@@ -20,7 +20,6 @@ class ProcessingThread : public thread
 {
 public:
     ProcessingThread(SharedImageBuffer *sharedImageBuffer, int deviceNumber, CameraView *parentCameraView);
-    bool esc();
     void stop();
 
 private:
@@ -35,7 +34,6 @@ private:
     ThreadStatisticsData m_statsData;
     volatile bool m_doStop;
     int m_deviceNumber;
-    bool m_esc;
 
 protected:
     void run();

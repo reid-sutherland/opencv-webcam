@@ -3,21 +3,22 @@
 #include "opencv2/opencv.hpp"
 
 //PCL
-//#include <pcl/visualization/cloud_viewer.h>
 #include <pcl/PCLPointCloud2.h>
 
 //Local
 #include "UtilsCameras.h"
 #include "CameraConnectOptions.h"
 #include "CameraView.h"
-//#include "Disparity.h"
 #include "StereoCalibration.h"
 #include "MyCalibration.h"
 #include "FilenameManagement.h"
 #include "Reconstruction3D.h"
+#include "PCObjectDetection.h"
+//#include "Disparity.h"
 
 //System
 #include <iostream>
+#include <ctime>
 #include <map>
 #include <termios.h>
 #include <atomic>
@@ -30,15 +31,23 @@ using namespace cv;
 CameraProperties *props;
 UtilsCameras util;
 SharedImageBuffer *sharedImageBuffer;
+vector<int> deviceIDs;
 map<int, CameraView*> cameraViewMap;
 map<int, CameraConnectOptions*> cameraOptionsMap;
 mutex delete_mutex;
 
+//Global Variables for processing/3D reconstruction
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+Disparity disparityObject;
+StereoCalibration stereoCalibration(StereoCalibration::Instance());
+Reconstruction3D reconstruction3D(disparityObject);
 
-bool connectCameras(vector<int> &deviceIDs, map<int, CameraConnectOptions*> &cameraOptionsMap);
-void connectCamerasDialog(vector<int> deviceIDs, map<int, CameraConnectOptions*> &cameraOptionsMap);
+
+bool connectCameras();
+void calibrateCameras();
+void processFeeds();
+void connectCamerasDialog();
 int getch();
-int getche();
 
 void welcome() {
     cout
@@ -80,8 +89,6 @@ int main (int argc, char* argv[])
     //print menu options
     menuOptions();
 
-    vector<int> deviceIDs;
-
     sharedImageBuffer = new SharedImageBuffer();
     char input = ' ';
     while (input != 'q') {
@@ -91,8 +98,8 @@ int main (int argc, char* argv[])
             cout << "Connecting to cameras [" << deviceIDs[0] << "] and [" << deviceIDs[1] << "]" << endl << endl;
 
             cameraOptionsMap.clear();
-            connectCamerasDialog(deviceIDs, cameraOptionsMap);
-            connectCameras(deviceIDs, cameraOptionsMap);
+            connectCamerasDialog();
+            connectCameras();
 
             cout << "\nAll cameras successfully disconnected." << endl;
             break;
@@ -103,8 +110,7 @@ int main (int argc, char* argv[])
         }
 
         cout << "\n*****Please select an option.*****" << endl << endl;
-        //input = (char) getch();
-        input = getchar();
+        input = (char) getch();
 
         //input is an integer
         if (input >= 48 && input <= 57) {
@@ -175,10 +181,10 @@ int main (int argc, char* argv[])
                 cout << "Error: your list of devices is empty. Please add a device before attempting to connect." << endl;
                 continue;
             }
-            //else
+
             cameraOptionsMap.clear();
-            connectCamerasDialog(deviceIDs, cameraOptionsMap);
-            connectCameras(deviceIDs, cameraOptionsMap);
+            connectCamerasDialog();
+            connectCameras();
 
             cout << "\nAll cameras successfully disconnected." << endl;
             break;
@@ -210,23 +216,15 @@ int main (int argc, char* argv[])
     exit(0);
 }
 
-
-
-bool connectCameras(vector<int> &deviceIDs, map<int, CameraConnectOptions*> &cameraOptionsMap) {
+// This function initializes the camera connection process, and creates all of the capturing/processing threads
+bool connectCameras() {
     //always enable stream synchronization
     bool streamSync = true;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
-    Disparity disparityObject;
-    MyCalibration mc;
-    StereoCalibration sc(StereoCalibration::Instance());
-    Mat frame1;
-    Mat frame2;
-    int numberOfIterations = 0;
 
     //for each camera registered in deviceIDs...
     for (auto deviceID : deviceIDs) {
         //create a new imageBuffer
-        Buffer<Mat> *imageBuffer = new Buffer<Mat>(cameraOptionsMap[deviceID]->getBufferSize());
+        auto *imageBuffer = new Buffer<Mat>(cameraOptionsMap[deviceID]->getBufferSize());
 
         //add each imageBuffer to the sharedImageBuffer
         sharedImageBuffer->add(deviceID, imageBuffer, streamSync);
@@ -247,80 +245,9 @@ bool connectCameras(vector<int> &deviceIDs, map<int, CameraConnectOptions*> &cam
         }
     }
 
-    bool esc = false;
-    bool calibLoaded = false;
-    cin.clear();
+    calibrateCameras();
 
-    while (!calibLoaded){
-        cout << "Do you want to calibrate cameras ? (y/n)" << endl;
-        cout << "Note: otherwise a calibration file will be loaded." << endl;
-        char input = getchar();
-
-        //input = Y or y
-        if (input == 121 || input == 89) {
-            cout << "Starting Calibration now. Press c to capture a frame." << endl;
-            cout << "Note: at least 5 frames are required to calibrate cameras." << endl << endl;
-            mc.createCalibration(deviceIDs, cameraViewMap, sc);
-            calibLoaded = true;
-        }
-        else {
-            //input = N or n
-            if (input == 110 || input == 78) {
-                sc.setCalibFilename(CALIB_DEFAULT_FILENAME);
-                sc.loadCalib();
-                std::cout << "Load calibration file complete successful...\n" << std::endl;
-                calibLoaded = true;
-            }
-            else {
-                std::cout << "Wrong answer \n" << std::endl;
-            }
-        }
-    }
-    disparityObject.loadDisparityParam(DISPA_DEFAULT_FILENAME);
-
-
-    while (true) {
-
-        for (auto deviceID : deviceIDs) {
-            if (cameraViewMap[deviceID]->esc()) {
-                esc = true;
-                break;
-            }
-        }
-
-        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
-        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
-
-        disparityObject.computeDispMap(frame1, frame2, true);
-        imshow("DiparityMap", disparityObject.filtered_disp);
-        int c = waitKey(30);
-        if (c == 27) {
-            break;
-        }
-
-        Reconstruction3D reconstruction3D(disparityObject);
-        reconstruction3D.buildPointCloud(frame1, frame2, sc);
-        reconstruction3D.retrievePointCloud(cloud);
-
-        //PointCloudObjectDetection objectDetection;
-        //objectDetection.detectionPlaneSeg(cloud);
-        //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_XYZ2(new pcl::PointCloud<pcl::PointXYZRGB>);
-        //if (pcl::io::loadPCDFile<pcl::PointXYZRGB>("/home/arthur/Documents/Internship/stereovis/applicationFiles/PlanarSeg/planarSeg.pcd", *cloud_XYZ2) != 0)
-        //{
-        //    return -1;
-        //}
-
-        //std::cout << "PCD File loaded sucessfully \n" << std::endl;
-
-        //objectDetection.detectionEuclidianClustering(cloud_XYZ2);
-
-        numberOfIterations++;
-        cout << "Number of iterations: " << numberOfIterations << endl << endl;
-
-        if (esc) {
-            break;
-        }
-    }
+    processFeeds();
 
     //after disconnection
     for (auto deviceID : deviceIDs) {
@@ -340,15 +267,121 @@ bool connectCameras(vector<int> &deviceIDs, map<int, CameraConnectOptions*> &cam
     return true;
 }
 
-void connectCamerasDialog(vector<int> deviceIDs, map<int, CameraConnectOptions*> &cameraOptionsMap) {
+void calibrateCameras() {
+    MyCalibration mc;
+
+    bool calibLoaded = false;
+    char input;
+
+    cout << "Do you want to calibrate cameras ? (y/n)" << endl;
+    cout << "Note: otherwise a calibration file will be loaded.\n" << endl;
+    while (!calibLoaded){
+        input = (char) getch();
+
+        //input = Y or y
+        if (input == 'y' || input == 'Y') {
+            mc.createCalibration(deviceIDs, cameraViewMap, stereoCalibration);
+            calibLoaded = true;
+        }
+        else {
+            //input = N or n
+            if (input == 'n' || input == 'N') {
+                stereoCalibration.setCalibFilename(CALIB_DEFAULT_FILENAME);
+                if (stereoCalibration.loadCalib()) {
+                    calibLoaded = true;
+                }
+                else {
+                    cout << "\nDo you want to calibrate cameras ? (y/n)" << endl;
+                    cout << "Note: otherwise a calibration file will be loaded.\n" << endl;
+                }
+            }
+            else {
+                cout << "\nError: Please select yes [y] or no [n]." << endl;
+            }
+        }
+    }
+}
+
+void processFeeds() {
+    Mat frame1;
+    Mat frame2;
+    int count = 0;
+    bool test = false;
+    bool showRectified = false;
+    bool showDisparity = false;
+
+    time_t startTime;
+    time_t loopTime;
+    time(&startTime);
+
+    while (true) {
+
+        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        //test
+        Mat test1;
+        Mat test2;
+        if (test) {
+            test1 = frame1.clone();
+            test2 = frame2.clone();
+        }
+
+        //Rectify Images
+        stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
+
+        if (test && !test1.empty() && !test2.empty()) {
+            imshow("Original Left", test1);
+            imshow("Original Right", test2);
+        }
+        if (showRectified && !frame1.empty() && !frame2.empty()) {
+            imshow("Rectified Left", frame1);
+            imshow("Rectified Right", frame2);
+        }
+        if (showDisparity && !disparityObject.filtered_disp.empty()) {
+            imshow("Disparity", disparityObject.filtered_disp);
+        }
+
+        //Reconstruction3D reconstruction3D(disparityObject);
+        //reconstruction3D.buildPointCloud(frame1, frame2, stereoCalibration);
+        //reconstruction3D.retrievePointCloud(cloud);
+
+
+
+
+        //PCObjectDetection objectDetection;
+        //objectDetection.detectionPlaneSeg(cloud);
+        //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_XYZ2(new pcl::PointCloud<pcl::PointXYZRGB>);
+        //if (pcl::io::loadPCDFile<pcl::PointXYZRGB>("/home/arthur/Documents/Internship/stereovis/applicationFiles/PlanarSeg/planarSeg.pcd", *cloud_XYZ2) != 0)
+        //{
+        //    return -1;
+        //}
+
+        //std::cout << "PCD File loaded sucessfully \n" << std::endl;
+
+        //objectDetection.detectionEuclidianClustering(cloud_XYZ2);
+
+        if (waitKey(30) == 27) {
+            destroyAllWindows();
+            break;
+        }
+
+        count++;
+        cout << "Number of iterations: " << count << endl;
+        time(&loopTime);
+        cout << "Timer = " << difftime(loopTime, startTime) << " seconds." << endl << endl;
+    }
+}
+
+// This function lets the user select their preferences for the camera feeds.
+void connectCamerasDialog() {
     cout << "****Connect Cameras: Options****" << endl << endl;
 
     cout << "Would you like to customize the camera initialization process? (y/n)" << endl;
-    cout << "[Note: if no is selected, default values will be used for all cameras.]" << endl;
+    cout << "[Note: if no is selected, default values will be used for all cameras.]\n" << endl;
 
-    cin.clear();
-    char choice = ' ';
-    choice = (char) getchar();
+    char choice;
+    choice = (char) getch();
     while (choice != 'y' && choice != 'n') {
         cerr << "Error: please press y for customization, or press n to use default values." << endl;
         choice = (char) getch();
@@ -377,20 +410,6 @@ int getch()
     tcgetattr( STDIN_FILENO, &oldattr );
     newattr = oldattr;
     newattr.c_lflag &= ~( ICANON | ECHO );
-    tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
-    ch = getchar();
-    tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
-    return ch;
-}
-
-//reads from keypress, echoes
-int getche()
-{
-    struct termios oldattr, newattr;
-    int ch;
-    tcgetattr( STDIN_FILENO, &oldattr );
-    newattr = oldattr;
-    newattr.c_lflag &= ~( ICANON );
     tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
     ch = getchar();
     tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
