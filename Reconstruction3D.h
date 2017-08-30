@@ -46,6 +46,7 @@ private:
     int bufsize;
     bool handleMissingValues;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr;
+    bool print;
 
 public:
 
@@ -61,6 +62,7 @@ public:
 
     //Other function
 	void printParameter();
+    void printQMatrix(cv::Mat Q);
 
     Disparity& getDisparityObj() {return disp;}
 

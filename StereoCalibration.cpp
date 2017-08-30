@@ -4,7 +4,7 @@
  *  Created on: 19 sept. 2015
  *  Author: erman
  */
-
+#include <thread>
 #include "StereoCalibration.h"
 
 StereoCalibration StereoCalibration::m_instance = StereoCalibration();
@@ -284,15 +284,9 @@ int StereoCalibration::stereoCalib(bool saveResult)
     }
     printf("Average epipolar err = %.2lf \n", err/npoints);
 
-//    cv::Mat QR;
     cv::stereoRectify(CM1, D1, CM2, D2, framesize, R, T, R1, R2, P1, P2, Q,
                       cv::CALIB_ZERO_DISPARITY, 0, framesize, &validRoi[0], &validRoi[1]);
-//                      cv::CALIB_ZERO_DISPARITY, 1, framesize, &validRoi[0], &validRoi[1]);
 
-    // Change Q value because of bad result with the default generated matrix
-//    QR.at<double>(0, 3) = -0.5 * framesize.width; // set center of image 'cx'
-//    QR.at<double>(1, 3) = 0.5 * framesize.height; // set center of image 'cy'
-//    QR.at<double>(2, 3) = -0.8 * framesize.width; // set focal lenght 'f'
 
     // COMPUTE AND DISPLAY RECTIFICATION
 
@@ -303,10 +297,10 @@ int StereoCalibration::stereoCalib(bool saveResult)
     }
     // OR ELSE HARTLEY'S METHOD
     else
+    {
         // use intrinsic parameters of each camera, but
         // compute the rectification transformation directly
         // from the fundamental matrix
-    {
         std::vector<cv::Point2f> allimgpt[2];
 
         for(int i = 0; i < nimages; i++ )
@@ -345,11 +339,6 @@ int StereoCalibration::rectifyStereoImg(cv::Mat imgLeft, cv::Mat imgRight,
     cv::initUndistortRectifyMap(CM1, D1, R1, P1, framesize, CV_16SC2, map1x, map1y);
     cv::initUndistortRectifyMap(CM2, D2, R2, P2, framesize, CV_16SC2, map2x, map2y);
 
-//    printf("rectifyStereoImg: size(R1, P1, R2, P2) = (%d, %d, %d, %d).",
-//                     R1.size(), P1.size(), R2.size(), P2.size());
-
-//    printf("rectifyStereoImg: size(map1x, map1y, map2x, map2y) = (%d, %d, %d, %d).",
-//                     map1x.size(), map1y.size(), map2x.size(), map2y.size());
     if(map1x.size() == cv::Size() || map1y.size() == cv::Size()
             || map2x.size() == cv::Size() || map2y.size() == cv::Size())
     {
@@ -360,37 +349,6 @@ int StereoCalibration::rectifyStereoImg(cv::Mat imgLeft, cv::Mat imgRight,
     //! Applaying rectification of images
     cv::remap(imgLeft, rectImgLeft, map1x, map1y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
     cv::remap(imgRight, rectImgRight, map2x, map2y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
-
-    //! Checking for valid ROI
-//    printf("ValidROI area is: [Left]%d and [Right]%d", validRoi[0].area(), validRoi[1].area());
-//    if(validRoi[0].area() == 0 || validRoi[1].area() == 0)
-//    {
-//        //ccLog::Error(QString(tr("Invalid Valid ROI area is 0, Please try to Calibrate your camera again!")));
-//        ccLog::Error(QString("Invalid Valid ROI area is 0, Please try to Calibrate your camera again !"));
-//        return -1;
-//    }
-
-//    //cv::cvtColor(rimg, cimg, cv::COLOR_GRAY2BGR);
-//    cv::Mat canvasPartL = rImgLeft(validRoi[0]);
-//    cv::Mat canvasPartR = rImgRight(validRoi[1]);
-
-//    cv::resize(canvasPartL, rectImgLeft, framesize, 0, 0, cv::INTER_AREA);
-//    cv::resize(canvasPartR, rectImgRight, framesize, 0, 0, cv::INTER_AREA);
-
-    // ============ Show the result of rectification ==================
-    //        printf("Rectification: ");
-    //        printf("rectifyStereoImg(1): Get valid zone = (%d, %d, %d, %d).",
-    //                         validRoi[0].x, validRoi[0].y, validRoi[0].width, validRoi[0].height);
-    //        printf("rectifyStereoImg(2): Get valid zone = (%d, %d, %d, %d).",
-    //                         validRoi[1].x, validRoi[1].y, validRoi[1].width, validRoi[1].height);
-
-    //Draw rectangle on canvasPart image
-//    cv::rectangle(rImgLeft, validRoi[0], cv::Scalar(0,0,255), 3, 8);
-//    cv::rectangle(rImgRight, validRoi[1], cv::Scalar(0,0,255), 3, 8);
-//    cv::imshow("rectifiedL", rImgLeft);
-//    cv::imshow("rectifiedR", rImgRight);
-
-//    cv::waitKey(100);
 
     return 0;
 }
