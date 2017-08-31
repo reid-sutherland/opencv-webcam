@@ -91,11 +91,6 @@ int Reconstruction3D::buildPointCloud(cv::Mat& img_rgb_left, cv::Mat& img_rgb_ri
 
 #endif
 
-    if (print) {        //implementation for one print
-        printQMatrix(Q);
-        print = false;
-    }
-
     //CustomProject3d(Q, img_rgb_left, img_disparity, point_cloud_ptr);
 
     return 0;

@@ -51,7 +51,7 @@ Reconstruction3D reconstruction3D(disparityObject);
 bool connectCameras();
 void calibrateCameras();
 void processFeeds();
-void objectDetectionImage(Mat input, Mat &contoured);
+void objectDetectionImage(Mat input, Mat &contoured, bool fromPicture);
 int getch();
 
 void welcome() {
@@ -101,7 +101,7 @@ int main (int argc, char* argv[])
     cout << "ObjectDetection (Image)?? (y/n)" << endl;
     if ((char) getch() == 'y') {
         Mat input, contoured;
-        //objectDetectionImage(input, contoured);
+        objectDetectionImage(input, contoured, true);
         return 0;
     }
     while (input != 'q') {
@@ -316,10 +316,9 @@ void processFeeds() {
     Mat original2;
     Mat contoured;
     Mat imgDisparity32F;
-    int count = 0;
     bool test = false;
     bool showRectified = false;
-    bool showDisparity = false;
+    bool showDisparity = true;
     char c;
 
     time_t startTime;
@@ -343,13 +342,8 @@ void processFeeds() {
         stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
 
         reconstruction3D.buildPointCloud(frame1, frame2, stereoCalibration);
-        cv::Mat XYZ(disparityObject.filtered_disp.size(), CV_32FC3);
-        //cv::reprojectImageTo3D(disparityObject.filtered_disp, XYZ, stereoCalibration.getQMatrix());
+        //disparityObject.m_semi_filtered_disp.convertTo(imgDisparity32F, CV_32F, 1./16);
 
-        imshow("test disp", disparityObject.filtered_disp);
-        //imshow("test xyz", XYZ);
-
-        //break;
         //reconstruction3D.retrievePointCloud(cloud);
 
         //PCObjectDetection objectDetection;
@@ -377,13 +371,13 @@ void processFeeds() {
             imshow("Filtered Disparity", disparityObject.filtered_disp);
         }
 
-        char c = (char) waitKey(50);
+        c = (char) waitKey(50);
         if ((int) c == 27) {
             destroyAllWindows();
             break;
         }
         else if (c == 'd') {
-            objectDetectionImage(frame1, contoured);
+            objectDetectionImage(frame1, contoured, false);
             imshow("Contoured", contoured);
         }
 
@@ -396,13 +390,17 @@ void processFeeds() {
     }
 }
 
-void objectDetectionImage(Mat input, Mat &contoured) {
+void objectDetectionImage(Mat input, Mat &contoured, bool fromPicture) {
     // load the color image
-    //IplImage* im = cvLoadImage("/home/reid/Pictures/objects.jpg");
     IplImage* im;
-    im = cvCreateImage(cvSize(input.cols, input.rows), 8, 3);
-    IplImage temp = input;
-    cvCopy(&temp, im);
+    if (fromPicture) {
+        im = cvLoadImage("/home/reid/Pictures/objects.jpg");
+    }
+    else {
+        im = cvCreateImage(cvSize(input.cols, input.rows), 8, 3);
+        IplImage temp = input;
+        cvCopy(&temp, im);
+    }
 
     // get the color histogram
     IplImage* im32f = cvCreateImage(cvGetSize(im), IPL_DEPTH_32F, 3);
@@ -472,40 +470,48 @@ void objectDetectionImage(Mat input, Mat &contoured) {
     grabCut(color, mask, Rect(), bgModel, fgModel, GC_INIT_WITH_MASK);
     Mat gcfg = mask == GC_PR_FGD;
 
-    /*
+    ///*
     int c = 0;
     while (c != 27) {
         imshow("gcfg", gcfg);
         c = waitKey(50);
     }
-    */
+    destroyWindow("gcfg");
+    //*/
 
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
     findContours(gcfg, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
     for(int idx = 0; idx < contours.size(); idx++)
     {
-        cout << "idx: " << idx << endl;     //***
         Rect roi = boundingRect(contours[idx]);
+
+        ///*
+        if(roi.height>300 && roi.width>300) {
+            cout << "idx: " << idx << " big" << endl;
+            cout << roi.height << endl;     //***
+            cout << roi.width << endl;
+            continue;
+        }
+
+        if(roi.height<40 && roi.width<40) {
+            cout << "idx: " << idx << " small" << endl;
+            cout << roi.height << endl;     //***
+            cout << roi.width << endl;
+            continue;
+        }
+        //*/
+
+        cout << "idx: " << idx << " SUCCESS" << endl;     //***
         cout << roi.height << endl;     //***
         cout << roi.width << endl;      //***
-        ///*
-        if(roi.height>300 && roi.width>300)
-            continue;
 
-        if(roi.height<40 && roi.width<40)
-            continue;
-        //*/
         drawContours(color, contours, idx, Scalar(0, 0, 255), 2);
 
         rectangle(color, roi,(255,0,255), 2);
     }
 
     contoured = color.clone();
-    //imshow("color", color);
-    // cleanup ...
-
-    //waitKey(10000);
 
     imwrite("/home/reid/Pictures/contoured.jpg", color) ;
 }

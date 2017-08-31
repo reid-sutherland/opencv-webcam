@@ -13,7 +13,7 @@
 using namespace cv;
 
 Disparity::Disparity()
-    : method("bm"), wls_lambda(8000.0),
+    : method("sgbm"), wls_lambda(8000.0),
       filterType("wls_conf"), wls_sigma(1.5), vis_mult(1.0),
       numberOfDisparities(80), SADWindowSize(-1), downscale(false),
       stereoCalibration(StereoCalibration::Instance())
@@ -23,6 +23,7 @@ Disparity::Disparity()
     // bm, wls_conf, 1.5, 160, false is okay but rather blurry
     // bm, wls_no_conf, 1.5, 160, is pretty good, a little buggy
     // bm, wls_conf, 1.5, 80, best so far
+    // sgbm, wld_conf, 1.5, 80, BY FAR best results so far
 }
 
 Disparity::~Disparity() {
@@ -55,7 +56,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
         stereoCalibration.rectifyStereoImg(imLeft, imRight, imLeft, imRight);
     }
 
-    Mat leftFrame, rightFrame;
+    Mat left_for_matcher, right_for_matcher;
     Mat semi_filtered_disp;
     Mat left_disp, right_disp;
 
@@ -103,14 +104,14 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             numberOfDisparities/=2;
             if(numberOfDisparities%16!=0)
                 numberOfDisparities += 16-(numberOfDisparities%16);
-            resize(imLeft, leftFrame, Size(), 0.5, 0.5);
-            resize(imRight, rightFrame, Size(), 0.5, 0.5);
+            resize(imLeft, left_for_matcher, Size(), 0.5, 0.5);
+            resize(imRight, right_for_matcher, Size(), 0.5, 0.5);
             //! [downscale]
         }
         else
         {
-            leftFrame  = imLeft.clone();
-            rightFrame = imRight.clone();
+            left_for_matcher  = imLeft.clone();
+            right_for_matcher = imRight.clone();
         }
 
         if (method == "bm")
@@ -120,15 +121,15 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             wls_filter = ximgproc::createDisparityWLSFilter(left_matcher);
             Ptr<StereoMatcher> right_matcher = ximgproc::createRightMatcher(left_matcher);
 
-            cvtColor(leftFrame, leftFrame,  COLOR_BGR2GRAY);
-            cvtColor(rightFrame, rightFrame, COLOR_BGR2GRAY);
+            cvtColor(left_for_matcher, left_for_matcher,  COLOR_BGR2GRAY);
+            cvtColor(right_for_matcher, right_for_matcher, COLOR_BGR2GRAY);
 
                 #ifdef STAT
                 matching_time = (double)cv::getTickCount();
                 #endif
 
-            left_matcher->compute(leftFrame, rightFrame, left_disp);
-            right_matcher->compute(rightFrame, leftFrame, right_disp);
+            left_matcher->compute(left_for_matcher, right_for_matcher, left_disp);
+            right_matcher->compute(right_for_matcher, left_for_matcher, right_disp);
 
                 #ifdef STAT
                 matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
@@ -149,8 +150,8 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
                 matching_time = (double)cv::getTickCount();
                 #endif
 
-            left_matcher->compute(leftFrame, rightFrame, left_disp);
-            right_matcher->compute(rightFrame, leftFrame, right_disp);
+            left_matcher->compute(left_for_matcher, right_for_matcher, left_disp);
+            right_matcher->compute(right_for_matcher, left_for_matcher, right_disp);
 
                 #ifdef STAT
                 matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
@@ -170,7 +171,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             filtering_time = (double)cv::getTickCount();
             #endif
 
-        wls_filter->filter(left_disp, leftFrame, semi_filtered_disp, right_disp);
+        wls_filter->filter(left_disp, left_for_matcher, semi_filtered_disp, right_disp);
 
             #ifdef STAT
             filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
@@ -196,24 +197,24 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
         /* There is no convenience function for the case of filtering with no confidence, so we
         will need to set the ROI and matcher parameters manually */
 
-        leftFrame  = imLeft.clone();
-        rightFrame = imRight.clone();
+        left_for_matcher  = imLeft.clone();
+        right_for_matcher = imRight.clone();
 
         if (method == "bm")
         {
             cv::Ptr<cv::StereoBM> matcher  = cv::StereoBM::create(numberOfDisparities,SADWindowSize);
             matcher->setTextureThreshold(0);
             matcher->setUniquenessRatio(0);
-            cv::cvtColor(leftFrame, leftFrame, cv::COLOR_BGR2GRAY);
-            cv::cvtColor(rightFrame, rightFrame, cv::COLOR_BGR2GRAY);
-            ROI = computeROI(leftFrame.size(), matcher);
+            cv::cvtColor(left_for_matcher, left_for_matcher, cv::COLOR_BGR2GRAY);
+            cv::cvtColor(right_for_matcher, right_for_matcher, cv::COLOR_BGR2GRAY);
+            ROI = computeROI(left_for_matcher.size(), matcher);
             wls_filter = cv::ximgproc::createDisparityWLSFilterGeneric(false);
             wls_filter->setDepthDiscontinuityRadius((int)ceil(0.33*SADWindowSize));
 
                 #ifdef STAT
                 matching_time = (double)cv::getTickCount();
                 #endif
-            matcher->compute(leftFrame, rightFrame, left_disp);
+            matcher->compute(left_for_matcher, right_for_matcher, left_disp);
                 #ifdef STAT
                 matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
                 #endif
@@ -227,14 +228,14 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             matcher->setP1(24*SADWindowSize*SADWindowSize);
             matcher->setP2(96*SADWindowSize*SADWindowSize);
             matcher->setMode(cv::StereoSGBM::MODE_SGBM_3WAY);
-            ROI = computeROI(leftFrame.size(), matcher);
+            ROI = computeROI(left_for_matcher.size(), matcher);
             wls_filter = cv::ximgproc::createDisparityWLSFilterGeneric(false);
             wls_filter->setDepthDiscontinuityRadius((int)ceil(0.5*SADWindowSize));
 
                 #ifdef STAT
                 matching_time = (double)cv::getTickCount();
                 #endif
-            matcher->compute(leftFrame, rightFrame, left_disp);
+            matcher->compute(left_for_matcher, right_for_matcher, left_disp);
                 #ifdef STAT
                 matching_time = ((double)cv::getTickCount() - matching_time)/cv::getTickFrequency();
                 #endif
@@ -250,7 +251,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
             #ifdef STAT
             filtering_time = (double)cv::getTickCount();
             #endif
-        wls_filter->filter(left_disp, leftFrame, semi_filtered_disp, cv::Mat(), ROI);
+        wls_filter->filter(left_disp, left_for_matcher, semi_filtered_disp, cv::Mat(), ROI);
             #ifdef STAT
             filtering_time = ((double)cv::getTickCount() - filtering_time)/cv::getTickFrequency();
             #endif
@@ -273,6 +274,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
 
     //! Get filter disparity
     ximgproc::getDisparityVis(semi_filtered_disp, filtered_disp, vis_mult);
+    m_semi_filtered_disp = semi_filtered_disp.clone();
 
     //! Get raw disparity
     ximgproc::getDisparityVis(left_disp, raw_disp, vis_mult);

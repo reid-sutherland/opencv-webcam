@@ -54,6 +54,7 @@ public:
 
     cv::Mat raw_disp;
     cv::Mat filtered_disp;
+    cv::Mat m_semi_filtered_disp;
     double filterTime;
     double macthingTime;
 
