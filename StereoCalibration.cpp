@@ -28,11 +28,6 @@ StereoCalibration& StereoCalibration::Instance()
     return m_instance;
 }
 
-void StereoCalibration::printParameter()
-{
-    std::cout << " --- StereoCalibration Parameters --- " << std::endl;
-}
-
 
 // This function saves the calibration parameters of the cameras to a file.
 bool StereoCalibration::saveCalib()
@@ -67,7 +62,7 @@ bool StereoCalibration::saveCalib()
     fs << "validRoiR" << this->validRoi[1];
 
     fs.release();
-    std::cout << "Calibration matrices saved to " << this->calib_filename.c_str() << std::endl;
+    std::cout << "Calibration matrices saved to " << this->calib_filename.c_str() << std::endl << std::endl;
 
     return true;
 }
@@ -107,7 +102,7 @@ bool StereoCalibration::loadCalib()
     fs["validRoiR"] >> this->validRoi[1];
 
     fs.release();
-    std::cout << "Calibration matrices successfully loaded from " << this->calib_filename.c_str() << "." << std::endl;
+    std::cout << "Calibration matrices successfully loaded from " << this->calib_filename.c_str() << std::endl << std::endl;
     this->calib_param_loaded = true;
 
     return true;
@@ -177,7 +172,7 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
     frame_left.copyTo(resframe_left);
     frame_right.copyTo(resframe_right);
 
-    const float squareSize = 1.f;  // Set this to your actual square size
+    const float squareSize = 0.023f;  // Set this to your actual square size
     for(int j = 0; j < board_h; j++ )
         for(int k = 0; k < board_w; k++ )
             object.push_back(cv::Point3f(k*squareSize, j*squareSize, 0));
@@ -359,88 +354,29 @@ void StereoCalibration::setCalibFilename(std::string _calib_filename)
     this->calib_filename = _calib_filename;
 }
 
+void StereoCalibration::printQMatrix() {
+    std::cout << "Cx = " << -1*Q.at<double>(0, 3) << std::endl;
+    std::cout << "Cy = " << -1*Q.at<double>(1, 3) << std::endl;
+    std::cout << "f = " << Q.at<double>(2, 3) << std::endl;
+    double Tx = -1/Q.at<double>(3, 2);
+    std::cout << "Tx = " << Tx << std::endl;
+    std::cout << "(Cx - C'x) = " << Tx*Q.at<double>(3, 3) << std::endl << std::endl;
 
-/**
- * Cette fonction permet de lire dans un fichier les parametres de la calibration dans un fichier.
- */
-int StereoCalibration::stereoChessDetection(const std::string imagelistfn)
-{
-    int result = 0;
-    std::vector<std::string> imagelist;
+/*
 
-    cv::Size boardSize;
-    boardSize.width = board_w;
-    boardSize.height = board_h;
+Q Matrix form:
 
-    bool ok = readStringList(imagelistfn, imagelist);
+    | 1  0    0         -cx      |
+Q = | 0  1    0         -cy      |
+    | 0  0    0          f       |
+    | 0  0  -1/Tx  (cx - c'x)/Tx |
 
-    if(!ok || imagelist.empty())
-    {
-        //ccLog::Error("Can not open  %s or the string list is empty \n", imagelistfn.c_str());
-        return -1;
-    }
-    if( imagelist.size() % 2 != 0 )
-    {
-        //ccLog::Warning("Error: the image list contains odd (non-even) number of elements \n");
-        return -1;
-    }
+    cx / cy     coordinates of the principal point in the dominant camera
+    c'x         x-coordinate of the principal point in the non-dominant camera
+                    (will be equal to cx if CALIB_ZERO_DISPARITY is specified, which is normally the case here)
+    f           focal length
+    Tx          baseline length - translation from one optical center to the other
 
-    int i, j = 0;
-    int nbImg = (int)imagelist.size()/2;
-
-    //! Reset Calibration Parameter
-    reset();
-
-    printf("Number of detected file is: %d \n", nimages);
-    for( i = 0; i < nbImg; i++ )
-    {
-        const std::string& filenameL = imagelist[i*2];
-        cv::Mat imgL = cv::imread(filenameL, 0);
-        const std::string& filenameR = imagelist[i*2+1];
-        cv::Mat imgR = cv::imread(filenameR, 0);
-        if(imgL.empty() || imgR.empty())
-            continue;
-
-        int res = stereoChessDetection(imgL, imgR, imgL, imgR);
-
-        if( res >= 0)
-        {
-            j++;
-        }
-    }
-
-    nimages = j;
-    printf("%d pairs have been successfully detected. \n", j);
-    return result;
+    Orientation: cx is at (0,3), cy is at (1,3), etc.
+*/
 }
-
-/**
- * Cette fonction permet de calibrer les cameras et d'enregistrer les parametres de calibration dans un fichier
- * (Parametres intrinseque et extrinseque)
- */
-int StereoCalibration::stereoCalib(bool saveResult, double& rmse)
-{
-    printf("Waiting a few moment for computing stereo calibration calibration... \n");
-
-    if(this->objectPoints.empty() || this->imagePoints_left.empty() || this->imagePoints_right.empty())
-    {
-        //ccLog::Error("There is no succes images");
-        return -1;
-    }
-
-    printf("Number of frame use: %d \n", (int)objectPoints.size());
-    rmse = cv::stereoCalibrate(this->objectPoints, this->imagePoints_left, this->imagePoints_right, this->CM1, this->D1, this->CM2,
-                               this->D2, this->framesize, this->R, this->T, this->E, this->F, cv::CALIB_FIX_INTRINSIC,
-                               cvTermCriteria(CV_TERMCRIT_ITER + CV_TERMCRIT_EPS, 100, 1e-5) );
-
-    printf("Calibration complete. RMSE = %.2lf \n", rmse);
-    this->calib_param_loaded = true;
-    if (saveResult){
-        this->saveCalib();
-    }
-    return 1;
-}
-
-
-
-

@@ -53,9 +53,6 @@ int Reconstruction3D::buildPointCloud(cv::Mat& img_rgb_left, cv::Mat& img_rgb_ri
     cv::waitKey(100);
 #endif
 
-    //! Declaration of 3D reconstruction parameter
-    cv::Mat Q = sc.getQMatrix();
-
     //! Reprojection 3D
 #ifdef TestVIZ
     cv::Mat XYZ(img_disparity.size(), CV_32FC3);
@@ -91,12 +88,16 @@ int Reconstruction3D::buildPointCloud(cv::Mat& img_rgb_left, cv::Mat& img_rgb_ri
 
 #endif
 
-    //CustomProject3d(Q, img_rgb_left, img_disparity, point_cloud_ptr);
+    //customProject3d(sc.getQMatrix(), img_rgb_left, img_disparity, point_cloud_ptr);
 
     return 0;
 }
 
-int Reconstruction3D::CustomProject3d(cv::Mat Q, cv::Mat img_rgb, cv::Mat img_disparity,
+int Reconstruction3D::computeDistance(cv::Mat Q, cv::Mat img_disparity, cv::Mat &mat_distance) {
+    
+}
+
+int Reconstruction3D::customProject3d(cv::Mat Q, cv::Mat img_rgb, cv::Mat img_disparity,
                                       const pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr)
 {
    //Create point cloud and fill it
@@ -157,12 +158,6 @@ void Reconstruction3D::printQMatrix(cv::Mat Q) {
     cout << "Tx = " << Tx << endl;
     cout << "(Cx - C'x) = " << Tx*Q.at<double>(3, 3) << endl << endl;
 }
-
-void Reconstruction3D::printParameter()
-{
-    std::cout << " --- Reconstruction3D Parameters --- " << std::endl;
-}
-
 
 /*
 

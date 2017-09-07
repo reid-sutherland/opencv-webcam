@@ -16,6 +16,7 @@
 #include "FilenameManagement.h"
 #include "Reconstruction3D.h"
 #include "PCObjectDetection.h"
+#include "FaceDetection.h"
 //#include "Disparity.h"
 
 //System
@@ -46,12 +47,17 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRG
 Disparity disparityObject;
 StereoCalibration stereoCalibration(StereoCalibration::Instance());
 Reconstruction3D reconstruction3D(disparityObject);
+FaceDetection faceDetection(disparityObject);
+Mat Q;
 
 
 bool connectCameras();
 void calibrateCameras();
 void processFeeds();
+void faceDetectionMethod();
+void backgroundSubtractionMethod();
 void objectDetectionImage(Mat input, Mat &contoured, bool fromPicture);
+void histogramTest();
 int getch();
 
 void welcome() {
@@ -97,13 +103,6 @@ int main (int argc, char* argv[])
     sharedImageBuffer = new SharedImageBuffer();
     char input = ' ';
 
-    //TODO: remove this
-    cout << "ObjectDetection (Image)?? (y/n)" << endl;
-    if ((char) getch() == 'y') {
-        Mat input, contoured;
-        objectDetectionImage(input, contoured, true);
-        return 0;
-    }
     while (input != 'q') {
         if (props->getNumberOfCameras() <= 2 && props->getNumberOfCameras() > 0) {
             deviceIDs = props->getDeviceIDs();
@@ -257,8 +256,21 @@ bool connectCameras() {
     }
 
     calibrateCameras();
+    Q = stereoCalibration.getQMatrix();
+    stereoCalibration.printQMatrix();
 
-    processFeeds();
+    cout << "***3D Reconstruction, Face Detection, or Background Subtraction?***" << endl;
+    cout << "Press r for 3D Reconstruction, f for face detection, or b for background subtraction." << endl << endl;
+    char c = (char) getch();
+    if (c == 'b' || c == 'B') {
+        backgroundSubtractionMethod();
+    } else if (c == 'f' || c == 'F') {
+        faceDetectionMethod();
+    } else if (c == 'h' || c == 'H') {
+        histogramTest();
+    } else {
+        processFeeds();
+    }
 
     //after disconnection
     for (auto deviceID : deviceIDs) {
@@ -280,7 +292,7 @@ void calibrateCameras() {
     bool calibLoaded = false;
     char input;
 
-    cout << "Do you want to calibrate cameras ? (y/n)" << endl;
+    cout << "Do you want to calibrate cameras? (y/n)" << endl;
     cout << "Note: otherwise a calibration file will be loaded.\n" << endl;
     while (!calibLoaded){
         input = (char) getch();
@@ -310,12 +322,8 @@ void calibrateCameras() {
 }
 
 void processFeeds() {
-    Mat frame1;
-    Mat frame2;
-    Mat original1;
-    Mat original2;
-    Mat contoured;
-    Mat imgDisparity32F;
+    Mat frame1, frame2, original1, original2, contoured;
+    Mat disparity;
     bool test = false;
     bool showRectified = false;
     bool showDisparity = true;
@@ -332,8 +340,7 @@ void processFeeds() {
         cameraViewMap[deviceIDs[0]]->getFrame(frame1);
         cameraViewMap[deviceIDs[1]]->getFrame(frame2);
 
-        //test
-        if (test) {
+        if (test && !frame1.empty() && !frame2.empty()) {
             original1 = frame1.clone();
             original2 = frame2.clone();
         }
@@ -341,34 +348,20 @@ void processFeeds() {
         // Rectify Images
         stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
 
-        reconstruction3D.buildPointCloud(frame1, frame2, stereoCalibration);
-        //disparityObject.m_semi_filtered_disp.convertTo(imgDisparity32F, CV_32F, 1./16);
+        // Compute Disparity Map
+        disparityObject.computeDispMap(frame1, frame2);
+        disparity = disparityObject.filtered_disp;
 
-        //reconstruction3D.retrievePointCloud(cloud);
-
-        //PCObjectDetection objectDetection;
-        //objectDetection.detectionPlaneSeg(cloud);
-        //pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_XYZ2(new pcl::PointCloud<pcl::PointXYZRGB>);
-        //if (pcl::io::loadPCDFile<pcl::PointXYZRGB>("/home/arthur/Documents/Internship/stereovis/applicationFiles/PlanarSeg/planarSeg.pcd", *cloud_XYZ2) != 0)
-        //{
-        //    return -1;
-        //}
-
-        //std::cout << "PCD File loaded sucessfully \n" << std::endl;
-
-        //objectDetection.detectionEuclidianClustering(cloud_XYZ2);
-
-        // Display windows
-        if (test && !original1.empty() && !original2.empty()) {
-            imshow("Original Left", original1);
-            imshow("Original Right", original2);
+        if (test && !frame1.empty() && !frame2.empty()) {
+            imshow("Original Left", frame1);
+            imshow("Original Right", frame2);
         }
         if (showRectified && !frame1.empty() && !frame2.empty()) {
             imshow("Rectified Left", frame1);
             imshow("Rectified Right", frame2);
         }
-        if (showDisparity && !disparityObject.filtered_disp.empty()) {
-            imshow("Filtered Disparity", disparityObject.filtered_disp);
+        if (showDisparity && !disparity.empty()) {
+            imshow("Filtered Disparity", disparity);
         }
 
         c = (char) waitKey(50);
@@ -387,6 +380,78 @@ void processFeeds() {
         time(&loopTime);
         cout << "Timer = " << difftime(loopTime, startTime) << " seconds." << endl << endl;
 #endif
+    }
+}
+
+void faceDetectionMethod() {
+    Mat frame1, frame2, frameFace, disparity;
+    vector<Rect> faces;
+    vector<Point> centers;
+    bool showFaceDetection = true;
+    char c;
+
+    // Load the cascade(s)
+    faceDetection.loadCascades();
+
+    cout << "\n***Press d to attempt to calculate distance to the current face.***" << endl << endl;
+
+    while (true) {
+
+        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        // Rectify Images
+        stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
+
+        // Compute Disparity Map
+        //disparityObject.computeDispMap(frame1, frame2);
+        //disparity = disparityObject.filtered_disp;
+
+        // Detect Faces
+        faceDetection.detectFace(frame1, frame2, frameFace);
+
+        if (showFaceDetection && !frameFace.empty()) {
+            imshow("FaceDetection", frameFace);
+        }
+
+        c = (char) waitKey(50);
+        if ((int) c == 27) {
+            destroyAllWindows();
+            break;
+        } else if (c == 'd' || c == 'D') {
+            faceDetection.computeDistanceToFace(frameFace);
+        }
+    }
+}
+
+void backgroundSubtractionMethod() {
+    Mat frame1, frame2, fgMask1, fgMask2;
+    Mat contoured;
+    Ptr<BackgroundSubtractor> pBS1 = createBackgroundSubtractorMOG2();
+    Ptr<BackgroundSubtractor> pBS2 = createBackgroundSubtractorMOG2();
+    char c;
+
+    while (true) {
+
+        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        // Rectify Images
+        stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
+
+        // Update background models
+        pBS1->apply(frame1, fgMask1);
+        pBS2->apply(frame2, fgMask2);
+
+        // Show current frames
+        imshow("FG Mask Left", fgMask1);
+        imshow("FG Mask Right", fgMask2);
+
+        c = (char) waitKey(50);
+        if ((int) c == 27) {
+            destroyAllWindows();
+            break;
+        }
     }
 }
 
@@ -516,6 +581,58 @@ void objectDetectionImage(Mat input, Mat &contoured, bool fromPicture) {
     imwrite("/home/reid/Pictures/contoured.jpg", color) ;
 }
 
+void histogramTest() {
+    Mat frame1, frame2, src, hsv;
+
+    while (waitKey(50) != 27) {
+        cameraViewMap[deviceIDs[0]]->getFrame(src);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        cvtColor(src, hsv, CV_BGR2HSV);
+
+        // Quantize the hue to 30 levels
+        // and the saturation to 32 levels
+        int hbins = 30, sbins = 32;
+        int histSize[] = {hbins, sbins};
+
+        // hue varies from 0 to 179, see cvtColor
+        float hranges[] = { 0, 180 };
+
+        // saturation varies from 0 (black-gray-white) to
+        // 255 (pure spectrum color)
+        float sranges[] = { 0, 256 };
+        const float* ranges[] = { hranges, sranges };
+        MatND hist;
+
+        // we compute the histogram from the 0-th and 1-st channels
+        int channels[] = {0, 1};
+
+        calcHist( &hsv, 1, channels, Mat(), // do not use mask
+                  hist, 2, histSize, ranges,
+                  true, // the histogram is uniform
+                  false );
+        double maxVal=0;
+        minMaxLoc(hist, 0, &maxVal, 0, 0);
+
+        int scale = 10;
+        Mat histImg = Mat::zeros(sbins*scale, hbins*10, CV_8UC3);
+
+        for( int h = 0; h < hbins; h++ )
+            for( int s = 0; s < sbins; s++ )
+            {
+                float binVal = hist.at<float>(h, s);
+                int intensity = cvRound(binVal*255/maxVal);
+                rectangle( histImg, Point(h*scale, s*scale),
+                           Point( (h+1)*scale - 1, (s+1)*scale - 1),
+                           Scalar::all(intensity),
+                           CV_FILLED );
+            }
+
+        imshow( "Source", src );
+        imshow( "H-S Histogram", histImg );
+    }
+}
+
 //reads from keypress, doesn't echo
 int getch()
 {
@@ -529,3 +646,12 @@ int getch()
     tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
     return ch;
 }
+
+/*
+D:= Distance of point in real world,
+b:= base offset, (the distance *between* your cameras)
+f:= focal length of camera,
+d:= disparity:
+
+D = b*f/d
+*/

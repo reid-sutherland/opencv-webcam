@@ -96,7 +96,6 @@ public:
 
     //! Perform calibration
     int stereoCalib(bool saveResult=false);
-    int stereoCalib(bool saveResult, double &rmse);
 
     //! function to save calibration parameters in the calib_filename
     bool saveCalib();
@@ -109,10 +108,9 @@ public:
 
     //! Dectect the chessboard on the two first frame, and draw the result on the two other.
     int stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_right, cv::Mat& gray_left, cv::Mat& gray_right);
-    int stereoChessDetection(const std::string imagelistfn=CALIB_STEREO_FILENAME);
 
     //! Other function
-    void printParameter();
+    void printQMatrix();
 
     //! Add a new point
     void addPointCorners(cv::Point3f objectPoint, cv::Point2f imgPt_left, cv::Point2f imgPt_right);
@@ -129,7 +127,7 @@ public:
     int rectifyStereoImg(cv::Mat imgLeft, cv::Mat imgRight,
                           cv::Mat& rectImgLeft, cv::Mat& rectImgRight);
     //! Setters
-    void setWeight(int w) { board_w = w; }
+    void setWidth(int w) { board_w = w; }
     void setHeight(int h) { board_h = h; }
     void setMinPoses(int poses) { min_poses = poses; }
     void setCM1(cv::Mat _CM1) { CM1 = _CM1; }

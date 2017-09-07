@@ -46,9 +46,9 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
             imshow( "Camera 2", res_right );
         }
 
-        int c = cv::waitKey(200);
-        if( (char)c == 27 ) { break; } // escape
-        if( (char)c == 99 || (char)c == 67 ) {   // c or C
+        char c = (char) cv::waitKey(200);
+        if ((int) c == 27 ) { break; } // escape
+        if (c == 'c' || c == 'C') {   // c or C
             sc.stereoChessDetection(frame1, frame2, res_left, res_right);
         }
     }

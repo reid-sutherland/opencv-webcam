@@ -57,11 +57,12 @@ public:
 
     int buildPointCloud(cv::Mat& img_rgb_left, cv::Mat& img_rgb_right, StereoCalibration& sc);
 
-    int CustomProject3d(cv::Mat Q, cv::Mat img_rgb, cv::Mat img_disparity,
+    int computeDistance(cv::Mat Q, cv::Mat img_disparity, cv::Mat &);
+
+    int customProject3d(cv::Mat Q, cv::Mat img_rgb, cv::Mat img_disparity,
                         const pcl::PointCloud<pcl::PointXYZRGB>::Ptr point_cloud_ptr);
 
     //Other function
-	void printParameter();
     void printQMatrix(cv::Mat Q);
 
     Disparity& getDisparityObj() {return disp;}
