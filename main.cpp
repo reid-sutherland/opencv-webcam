@@ -45,7 +45,7 @@ mutex delete_mutex;
 //Global Variables for processing/3D reconstruction
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 Disparity disparityObject;
-StereoCalibration stereoCalibration(StereoCalibration::Instance());
+StereoCalibration* stereoCalibration(StereoCalibration::instance());
 Reconstruction3D reconstruction3D(disparityObject);
 FaceDetection faceDetection(disparityObject);
 Mat Q;
@@ -55,6 +55,7 @@ bool connectCameras();
 void calibrateCameras();
 void processFeeds();
 void faceDetectionMethod();
+void faceTrackingMethod();
 void backgroundSubtractionMethod();
 void objectDetectionImage(Mat input, Mat &contoured, bool fromPicture);
 void histogramTest();
@@ -98,7 +99,9 @@ int main (int argc, char* argv[])
     props = util.detectCameras();
 
     //print menu options
-    menuOptions();
+    cout << "\n------------------------------------------" << endl;
+    cout << "Press h to display a list of menu options." << endl;
+    cout << "------------------------------------------" << endl;
 
     sharedImageBuffer = new SharedImageBuffer();
     char input = ' ';
@@ -256,16 +259,18 @@ bool connectCameras() {
     }
 
     calibrateCameras();
-    Q = stereoCalibration.getQMatrix();
-    stereoCalibration.printQMatrix();
+    Q = stereoCalibration->getQMatrix();
 
-    cout << "***3D Reconstruction, Face Detection, or Background Subtraction?***" << endl;
-    cout << "Press r for 3D Reconstruction, f for face detection, or b for background subtraction." << endl << endl;
+    cout << "***Method Selection***" << endl;
+    cout << "Press r for 3D Reconstruction, f for face detection, t for face tracking, "
+         << "b for background subtraction, or h for histogram testing." << endl << endl;
     char c = (char) getch();
     if (c == 'b' || c == 'B') {
         backgroundSubtractionMethod();
     } else if (c == 'f' || c == 'F') {
         faceDetectionMethod();
+    } else if (c == 't' || c == 'T') {
+        faceTrackingMethod();
     } else if (c == 'h' || c == 'H') {
         histogramTest();
     } else {
@@ -299,14 +304,14 @@ void calibrateCameras() {
 
         //input = Y or y
         if (input == 'y' || input == 'Y') {
-            mc.createCalibration(deviceIDs, cameraViewMap, stereoCalibration);
+            mc.createCalibration(deviceIDs, cameraViewMap);
             calibLoaded = true;
         }
         else {
             //input = N or n
             if (input == 'n' || input == 'N') {
-                stereoCalibration.setCalibFilename(CALIB_DEFAULT_FILENAME);
-                if (stereoCalibration.loadCalib()) {
+                stereoCalibration->setCalibFilename(CALIB_DEFAULT_FILENAME);
+                if (stereoCalibration->loadCalib()) {
                     calibLoaded = true;
                 }
                 else {
@@ -325,7 +330,7 @@ void processFeeds() {
     Mat frame1, frame2, original1, original2, contoured;
     Mat disparity;
     bool test = false;
-    bool showRectified = false;
+    bool showRectified = true;
     bool showDisparity = true;
     char c;
 
@@ -346,7 +351,7 @@ void processFeeds() {
         }
 
         // Rectify Images
-        stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
+        stereoCalibration->rectifyStereoImg(frame1, frame2, frame1, frame2);
 
         // Compute Disparity Map
         disparityObject.computeDispMap(frame1, frame2);
@@ -384,42 +389,123 @@ void processFeeds() {
 }
 
 void faceDetectionMethod() {
-    Mat frame1, frame2, frameFace, disparity;
+    Mat frame1, frame2, distanceFrame;
     vector<Rect> faces;
     vector<Point> centers;
     bool showFaceDetection = true;
     char c;
 
     // Load the cascade(s)
-    faceDetection.loadCascades();
-
-    cout << "\n***Press d to attempt to calculate distance to the current face.***" << endl << endl;
+    if (!faceDetection.loadCascades()) {
+        return;
+    }
+    stereoCalibration->printQMatrix();
 
     while (true) {
-
         cameraViewMap[deviceIDs[0]]->getFrame(frame1);
         cameraViewMap[deviceIDs[1]]->getFrame(frame2);
 
         // Rectify Images
-        stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
+        stereoCalibration->rectifyStereoImg(frame1, frame2, frame1, frame2);
 
         // Compute Disparity Map
+        //this can be done directly in computeDistanceToFace()
         //disparityObject.computeDispMap(frame1, frame2);
-        //disparity = disparityObject.filtered_disp;
 
         // Detect Faces
-        faceDetection.detectFace(frame1, frame2, frameFace);
+        faceDetection.detectFace(frame1, frame2);
 
-        if (showFaceDetection && !frameFace.empty()) {
-            imshow("FaceDetection", frameFace);
+        // Compute Distance to Face
+        faceDetection.computeDistanceToFace(true);
+
+        // Draw the distance on the image
+        faceDetection.drawDistance();
+
+        // Copy outputFrame to distanceFrame
+        faceDetection.outputFrame().copyTo(distanceFrame);
+
+        if (showFaceDetection && !distanceFrame.empty()) {
+            imshow("FaceDetection", distanceFrame);
         }
 
         c = (char) waitKey(50);
         if ((int) c == 27) {
             destroyAllWindows();
             break;
-        } else if (c == 'd' || c == 'D') {
-            faceDetection.computeDistanceToFace(frameFace);
+        }
+    }
+}
+
+void faceTrackingMethod() {
+    Mat frame1, frame2, distanceFrame;
+    bool showTrackedObject = true;
+    char c, choice;
+
+    cout << "***Press c when you are ready to capture an image from the left camera, "  << endl
+         << "\twhich you will use to select an ROI for the object to be tracked."       << endl
+         << "\tBe sure the object to be tracked is clearly displayed in the image.***"  << endl << endl;
+
+    while (c != 27) {
+        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        // Rectify Images
+        stereoCalibration->rectifyStereoImg(frame1, frame2, frame1, frame2);
+
+        imshow("Press c to capture frame", frame1);
+
+        c = (char) waitKey(50);
+        if (c == 'c' || c == 'C') {
+            if (faceDetection.initializeTrackerROI(frame1)) {   // Valid ROI
+                cout << "Do you want to use this ROI for tracking? (y/n)" << endl << endl;
+                choice = (char) getch();
+
+                if (choice == 'n' || choice == 'N') {   // No
+                    continue;
+                }
+                else {    // Yes
+                    destroyAllWindows();
+                    break;
+                }
+            } else {    // Invalid ROI
+                continue;
+            }
+        }
+    }
+
+    cout << "***Starting the tracking process, press ESC to quit." << endl << endl;
+
+    while (true) {
+        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        // Rectify Images
+        stereoCalibration->rectifyStereoImg(frame1, frame2, frame1, frame2);
+
+        // Compute Disparity Map
+        //this can be done directly in computeDistanceToFace()
+        //disparityObject.computeDispMap(frame1, frame2);
+
+        // Track Face/Object
+        faceDetection.trackFace(frame1, frame2);
+
+        // Compute Distance to Face
+        faceDetection.computeDistanceToObject(true);
+
+        // Draw the distance on the image
+        faceDetection.drawDistance();
+
+        // Copy outputFrame to distanceFrame
+        faceDetection.outputFrame().copyTo(distanceFrame);
+
+        if (showTrackedObject && !distanceFrame.empty()) {
+            imshow("Tracking", distanceFrame);
+        }
+
+        c = (char) waitKey(50);
+        if ((int) c == 27) {
+            destroyAllWindows();
+            break;
         }
     }
 }
@@ -437,7 +523,7 @@ void backgroundSubtractionMethod() {
         cameraViewMap[deviceIDs[1]]->getFrame(frame2);
 
         // Rectify Images
-        stereoCalibration.rectifyStereoImg(frame1, frame2, frame1, frame2);
+        stereoCalibration->rectifyStereoImg(frame1, frame2, frame1, frame2);
 
         // Update background models
         pBS1->apply(frame1, fgMask1);
@@ -646,12 +732,3 @@ int getch()
     tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
     return ch;
 }
-
-/*
-D:= Distance of point in real world,
-b:= base offset, (the distance *between* your cameras)
-f:= focal length of camera,
-d:= disparity:
-
-D = b*f/d
-*/

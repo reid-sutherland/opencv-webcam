@@ -16,7 +16,7 @@ Disparity::Disparity()
     : method("sgbm"), wls_lambda(8000.0),
       filterType("wls_conf"), wls_sigma(1.5), vis_mult(1.0),
       numberOfDisparities(80), SADWindowSize(-1), downscale(false),
-      stereoCalibration(StereoCalibration::Instance())
+      stereoCalibration(StereoCalibration::instance())
 {
     // Note: downscaling only works if bm and wls_conf
     // bm, wls_conf, 1.5, 160, true is terrible
@@ -53,7 +53,7 @@ int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
 
     if(rectify)
     {
-        stereoCalibration.rectifyStereoImg(imLeft, imRight, imLeft, imRight);
+        stereoCalibration->rectifyStereoImg(imLeft, imRight, imLeft, imRight);
     }
 
     Mat left_for_matcher, right_for_matcher;

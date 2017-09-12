@@ -31,15 +31,17 @@ using namespace std;
 
 class MyCalibration
 {
+private:
+    StereoCalibration* stereoCalibration;
 
 public:
-  // Constructor
-  MyCalibration();
+    // Constructor
+    MyCalibration();
 
-  // Methods
-  int createCalibration(vector<int> deviceIDs, map<int, CameraView*> cameraViewMap, StereoCalibration& sc);
-  int chessboardDetection(cv::Mat& frame1, cv::Mat& frame2);
-  int calibrateCameras(StereoCalibration& sc);
+    // Methods
+    int createCalibration(vector<int> deviceIDs, map<int, CameraView*> cameraViewMap);
+    int chessboardDetection(cv::Mat& frame1, cv::Mat& frame2);
+    int calibrateCameras();
 
 };
 

@@ -7,7 +7,7 @@
 #include <thread>
 #include "StereoCalibration.h"
 
-StereoCalibration StereoCalibration::m_instance = StereoCalibration();
+StereoCalibration* StereoCalibration::m_instance = 0;
 
 StereoCalibration::StereoCalibration()
 {
@@ -19,11 +19,11 @@ StereoCalibration::~StereoCalibration()
 
 }
 
-StereoCalibration& StereoCalibration::Instance()
+StereoCalibration* StereoCalibration::instance()
 {
-    if(!m_instance.isInstantiated())
-    {
-        m_instance.init();
+    if (!m_instance) {
+        m_instance = new StereoCalibration;
+        m_instance->init();
     }
     return m_instance;
 }
@@ -243,15 +243,12 @@ int StereoCalibration::stereoCalib(bool saveResult)
                                      cv::CALIB_RATIONAL_MODEL +
                                      cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5,
                                      cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, 1e-5) );
-
     calib_error = rms;
     printf("Done with RMS error %.2lf \n", rms);
 
     // CALIBRATION QUALITY CHECK
-    // because the output fundamental matrix implicitly
-    // includes all the output information,
-    // we can check the quality of calibration using the
-    // epipolar geometry constraint: m2^t*F*m1=0
+    // because the output fundamental matrix implicitly includes all the output information,
+    // we can check the quality of calibration using the epipolar geometry constraint: m2^t*F*m1=0
     double err = 0;
     int npoints = 0;
     std::vector<cv::Vec3f> lines[2];

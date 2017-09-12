@@ -16,17 +16,19 @@ cv::Mat frame1;
 cv::Mat frame2;
 
 // Constructor
-MyCalibration::MyCalibration(){
+MyCalibration::MyCalibration()
+    : stereoCalibration(StereoCalibration::instance())
+{
 
 }
 
 // This method use StereoCalibration instance to calibrate cameras (made for 2 cameras)
-int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*> cvMap, StereoCalibration& sc) {
+int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*> cvMap) {
     cout << "\n***Starting chessboard detection now...***" << endl;
     cout << "Press c to capture a frame. Note: at least 5 frames are required to calibrate cameras." << endl << endl;
 
-    sc.reset();
-    sc.init();
+    stereoCalibration->reset();
+    //stereoCalibration.init();
 
     namedWindow("Camera 1");
     namedWindow("Camera 2");
@@ -49,7 +51,7 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
         char c = (char) cv::waitKey(200);
         if ((int) c == 27 ) { break; } // escape
         if (c == 'c' || c == 'C') {   // c or C
-            sc.stereoChessDetection(frame1, frame2, res_left, res_right);
+            stereoCalibration->stereoChessDetection(frame1, frame2, res_left, res_right);
         }
     }
 
@@ -58,7 +60,7 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
 
     cout << "***Chessboard detection done.***" << endl;
 
-    calibrateCameras(sc);
+    calibrateCameras();
 }
 
 // This method show on screen the chessboard detection, so people can capture specific frames for the calibration.
@@ -103,14 +105,14 @@ int MyCalibration::chessboardDetection(cv::Mat& frame1, cv::Mat& frame2){
 }
 
 // This method just call the calibration method from the stereocalibration instance.
-int MyCalibration::calibrateCameras(StereoCalibration& sc){
+int MyCalibration::calibrateCameras(){
 
-  int resultat = sc.stereoCalib(true);  //true - always save result
+  int resultat = stereoCalibration->stereoCalib(true);  //true - always save result
   if (resultat == -1) {
-    std::cout << "\nCalibration failed.\n" << std::endl;
+    std::cout << "Calibration failed.\n" << std::endl;
   }
   else{
-    std::cout << "\nCalibration done.\n" << std::endl;
+    std::cout << "Calibration done.\n" << std::endl;
   }
   return resultat;
 }

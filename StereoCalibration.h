@@ -77,9 +77,7 @@ private:
     double calib_error;
 
     //! Singleton implementation
-    static StereoCalibration m_instance;
-    int instantiated;
-    StereoCalibration& operator=(const StereoCalibration&){}
+    static StereoCalibration *m_instance;
 
     //! get list of filename in a file on disk.
     bool readStringList( const std::string& filename, std::vector<std::string>& fileNameList );
@@ -89,10 +87,10 @@ private:
 
 public:
 
-    StereoCalibration (const StereoCalibration&){}
+    //StereoCalibration (const StereoCalibration&){}
     virtual ~StereoCalibration();
 
-    static StereoCalibration& Instance();
+    static StereoCalibration* instance();
 
     //! Perform calibration
     int stereoCalib(bool saveResult=false);
@@ -117,11 +115,6 @@ public:
 
     //! Get the value of calibration_param_loaded
     bool isCalibrationParamLoaded() const { return this->calib_param_loaded;}
-    bool isInstantiated() const
-    {
-        return (this->instantiated == 10 && min_poses == 5
-                 && board_w == 9 && board_h == 6);    //&& framesize != cv::Size());
-    }
 
     //! Rectify two images
     int rectifyStereoImg(cv::Mat imgLeft, cv::Mat imgRight,
@@ -142,7 +135,6 @@ public:
         board_h = 6;
         CM1 = cv::Mat(3, 3, CV_64FC1);
         CM2 = cv::Mat(3, 3, CV_64FC1);
-        instantiated = 10;
         useCalibrated = true;
     }
 

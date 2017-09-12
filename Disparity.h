@@ -47,7 +47,7 @@ private:
     double wls_sigma;//parameter of post-filtering
     double vis_mult;//coefficient used to scale disparity map visualizations
 
-    StereoCalibration& stereoCalibration;
+    StereoCalibration* stereoCalibration;
     cv::Rect computeROI(cv::Size2i src_sz, cv::Ptr<cv::StereoMatcher> matcher_instance);
 
 public:
