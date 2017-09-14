@@ -23,19 +23,12 @@ Disparity::Disparity()
     // bm, wls_conf, 1.5, 160, false is okay but rather blurry
     // bm, wls_no_conf, 1.5, 160, is pretty good, a little buggy
     // bm, wls_conf, 1.5, 80, best so far
-    // sgbm, wld_conf, 1.5, 80, BY FAR best results so far
+    // sgbm, wls_conf, 1.5, 80, BY FAR best results so far
 }
 
 Disparity::~Disparity() {
 
 }
-
-/*  this function is seemingly pointless
-int Disparity::computeNormDisp(cv::Mat imgLeft, cv::Mat imgRight, bool rectify)
-{
-    return computeDispMap(imgLeft, imgRight, rectify);
-}
-*/
 
 int Disparity::computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify)
 {

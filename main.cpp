@@ -399,6 +399,7 @@ void faceDetectionMethod() {
     if (!faceDetection.loadCascades()) {
         return;
     }
+    faceDetection.updateQMatrix();
     stereoCalibration->printQMatrix();
 
     while (true) {
@@ -419,7 +420,7 @@ void faceDetectionMethod() {
         faceDetection.computeDistanceToFace(true);
 
         // Draw the distance on the image
-        faceDetection.drawDistance();
+        faceDetection.drawDistanceBelowROI(false);  // false is used for face detection
 
         // Copy outputFrame to distanceFrame
         faceDetection.outputFrame().copyTo(distanceFrame);
@@ -439,7 +440,7 @@ void faceDetectionMethod() {
 void faceTrackingMethod() {
     Mat frame1, frame2, distanceFrame;
     bool showTrackedObject = true;
-    char c, choice;
+    char c;
 
     cout << "***Press c when you are ready to capture an image from the left camera, "  << endl
          << "\twhich you will use to select an ROI for the object to be tracked."       << endl
@@ -457,23 +458,16 @@ void faceTrackingMethod() {
         c = (char) waitKey(50);
         if (c == 'c' || c == 'C') {
             if (faceDetection.initializeTrackerROI(frame1)) {   // Valid ROI
-                cout << "Do you want to use this ROI for tracking? (y/n)" << endl << endl;
-                choice = (char) getch();
-
-                if (choice == 'n' || choice == 'N') {   // No
-                    continue;
-                }
-                else {    // Yes
-                    destroyAllWindows();
-                    break;
-                }
+                destroyAllWindows();
+                break;
             } else {    // Invalid ROI
                 continue;
             }
         }
     }
 
-    cout << "***Starting the tracking process, press ESC to quit." << endl << endl;
+    cout << "\n***Starting the tracking process, press ESC to quit." << endl << endl;
+    faceDetection.updateQMatrix();
 
     while (true) {
         cameraViewMap[deviceIDs[0]]->getFrame(frame1);
@@ -493,7 +487,8 @@ void faceTrackingMethod() {
         faceDetection.computeDistanceToObject(true);
 
         // Draw the distance on the image
-        faceDetection.drawDistance();
+        //faceDetection.drawDistanceBelowROI(true);   // true is used for tracking
+        faceDetection.drawDistanceInCorner();
 
         // Copy outputFrame to distanceFrame
         faceDetection.outputFrame().copyTo(distanceFrame);

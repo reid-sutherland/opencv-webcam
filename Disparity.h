@@ -61,7 +61,6 @@ public:
     Disparity();
 
 	virtual ~Disparity();
-    //int computeNormDisp(cv::Mat imgLeft, cv::Mat imgRight, bool rectify=false);
     int computeDispMap(cv::Mat imLeft, cv::Mat imRight, bool rectify=false);
 
 	//getters and setters

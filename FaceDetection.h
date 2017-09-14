@@ -38,7 +38,7 @@ private:
 
     //! Object Tracking
     Ptr<Tracker> m_tracker;
-    Rect2d m_trackerROI;
+    Rect2d m_trackerROI, m_smallTrackerROI;
 
     //! Face Detection
     CascadeClassifier face_cascade;
@@ -70,7 +70,9 @@ public:
     bool loadCascades();
 
     //! Misc.
-    void drawDistance();
+    void drawDistanceBelowROI(bool tracking);
+    void drawDistanceInCorner();
+    void updateQMatrix();
 
     //! Getters
     vector<Rect> getFaces() { return rectFaces; };

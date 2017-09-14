@@ -19,25 +19,15 @@ FaceDetection::~FaceDetection() {
 
 bool FaceDetection::initializeTrackerROI(Mat frameLeft) {
     // Create a Tracker object
-    m_tracker = TrackerKCF::create();   // Kernelized Correlation Filters
+    //m_tracker = TrackerKCF::create();     // Kernelized Correlation Filters
+    m_tracker = TrackerMIL::create();       // Multiple Instance Learning
 
     // Select ROI
-    //bool fromCenter = false;        // we want to drag from top left to bottom right, not from center out
-    m_trackerROI = selectROI("tracker", frameLeft /*, fromCenter*/);
-
-    // Crop image
-    Mat frameCrop = frameLeft(m_trackerROI);
-
-    // Display Cropped Image
-    while (waitKey(50) != 27) {
-        if (!frameCrop.empty()) {
-            imshow("Cropped", frameCrop);
-        }
-    }
-    destroyWindow("Cropped");
+    m_trackerROI = selectROI("Select ROI", frameLeft);
 
     if (m_trackerROI.width == 0 || m_trackerROI.height == 0) {
-        cout << "[initializeTrackerROI] Error: Invalid ROI." << endl;
+        cout << "[initializeTrackerROI] Error: Invalid ROI." << endl << endl;
+        destroyWindow("Select ROI");
         return false;
     } else {
         // Initialize Tracker
@@ -71,14 +61,21 @@ int FaceDetection::computeDistanceToObject(bool computeDisp) {
         disp.computeDispMap(m_frameLeft, m_frameRight);
     }
 
+    // Calculate smallFaceROI and draw it on the frame
+    m_smallTrackerROI = Rect2d(m_trackerROI.x + m_trackerROI.width/4,
+                               m_trackerROI.y + m_trackerROI.height/4,
+                               m_trackerROI.width/2,
+                               m_trackerROI.height/2);
+    rectangle(m_outputFrame, m_smallTrackerROI, Scalar(0, 0, 255), 4);
+
     Mat dispFaceFrame;
-    dispFaceFrame = Mat(disp.filtered_disp, m_trackerROI);
+    dispFaceFrame = Mat(disp.filtered_disp, m_smallTrackerROI);
 
     // Find the average disparity across the ROI
     int sum = 0, d_int = 0, numValues = 0;
     for (int i = 0; i < dispFaceFrame.rows; i++) {
         //auto* rgb_row_ptr = rgbFaceFrame.ptr<uchar>(i);   //not needed
-        auto* disp_row_ptr = dispFaceFrame.ptr<uchar>(i);
+        auto *disp_row_ptr = dispFaceFrame.ptr<uchar>(i);
 
         for (int j = 0; j < dispFaceFrame.cols; j++) {
             // add each disp value to the sum
@@ -90,6 +87,7 @@ int FaceDetection::computeDistanceToObject(bool computeDisp) {
             numValues++;
         }
     }
+
     // Calculate the average disparity
     double avgDisp = sum / numValues;
 
@@ -108,7 +106,7 @@ int FaceDetection::computeDistanceToObject(bool computeDisp) {
     cout << "avgDisp = " << avgDisp << endl;
     cout << "baseline = " << baseline << endl;
     cout << "focal = " << focal << endl;
-    cout << "\n***Distance to object is: " << m_distance << " meters***" << endl << endl;
+    cout << "***Distance to object is: " << m_distance << " meters***" << endl << endl;
 #endif
 
     return 0;
@@ -117,7 +115,7 @@ int FaceDetection::computeDistanceToObject(bool computeDisp) {
 int FaceDetection::detectFace(Mat frameLeft, Mat frameRight) {
     // Detect empty frames
     if (frameLeft.empty() || frameRight.empty()) {
-        cout << "[FaceDetection] Error reading frame." << endl;
+        cout << "[detectFace] Error reading frame." << endl;
         return -1;
     }
 
@@ -204,7 +202,7 @@ int FaceDetection::computeDistanceToFace(bool computeDisp) {
     return 0;
 }
 
-void FaceDetection::drawDistance() {
+void FaceDetection::drawDistanceBelowROI(bool tracking) {
     // Create the distance string
     string distanceStr = "Distance: ";
     distanceStr.append(to_string(m_distance));
@@ -221,18 +219,55 @@ void FaceDetection::drawDistance() {
     baseline += thickness;
 
     // Use Rect values from faceDetect to set the text/box location
-    Rect rectFace = m_faceROI;
+    Rect2d rectFace;
+    if (tracking) {
+        rectFace = m_trackerROI;
+    } else {
+        rectFace = m_faceROI;
+    }
+
     int boxBuffer = 15, boxMargin = 5;
 
     // These values are used to center the textBox horizontally with the faceRectangle
-    int textCoordX = rectFace.x + ((rectFace.width - textSize.width) / 2);
-    int textCoordY = rectFace.y + rectFace.height + textSize.height + boxBuffer;
-    Point textPoint(textCoordX, textCoordY);
+    double textCoordX = rectFace.x + ((rectFace.width - textSize.width) / 2);
+    double textCoordY = rectFace.y + rectFace.height + textSize.height + boxBuffer;
+    Point2d textPoint(textCoordX, textCoordY);
 
     // Draw the box
-    rectangle(m_outputFrame, textPoint + Point(-boxMargin, boxMargin),
-                textPoint + Point(textSize.width, -textSize.height) + Point(boxMargin, -boxMargin),
+    rectangle(m_outputFrame, textPoint + Point2d(-boxMargin, boxMargin),
+                textPoint + Point2d(textSize.width, -textSize.height) + Point2d(boxMargin, -boxMargin),
                 Scalar::all(0), CV_FILLED);
+
+    // Place text in the box
+    putText(m_outputFrame, distanceStr, textPoint, fontFace, fontScale, Scalar::all(255), thickness, 8);
+}
+
+void FaceDetection::drawDistanceInCorner() {
+    // Create the distance string
+    string distanceStr = "Distance: ";
+    distanceStr.append(to_string(m_distance));
+    distanceStr.append(" (m)");
+
+    // Initialize textDraw values
+    int fontFace = FONT_HERSHEY_SIMPLEX;
+    double fontScale = 0.75;
+    int thickness = 1;
+    int baseline = 0;
+    double boxMargin = 5.0;
+
+    // Get the size of the text
+    Size textSize = getTextSize(distanceStr, fontFace, fontScale, thickness, &baseline);
+    baseline += thickness;
+
+    // These values are used to draw the distance in the corner of the screen
+    double box_X = 0;
+    double box_Y = m_outputFrame.rows;
+    Point2d boxPoint(box_X, box_Y);
+    Point2d boxPoint2(box_X + textSize.width + boxMargin*2, box_Y - textSize.height - boxMargin*2);
+    Point2d textPoint(box_X + boxMargin, box_Y - boxMargin);
+
+    // Draw the box
+    rectangle(m_outputFrame, boxPoint, boxPoint2, Scalar::all(0), CV_FILLED);
 
     // Place text in the box
     putText(m_outputFrame, distanceStr, textPoint, fontFace, fontScale, Scalar::all(255), thickness, 8);
@@ -263,9 +298,12 @@ bool FaceDetection::loadCascades() {
         return false;
     } else {
         cout << "[FaceDetection] Successfully loaded cascade." << endl;
-        Q = stereoCalibration->getQMatrix();
         return true;
     }
+}
+
+void FaceDetection::updateQMatrix() {
+    Q = stereoCalibration->getQMatrix();
 }
 
 /*
