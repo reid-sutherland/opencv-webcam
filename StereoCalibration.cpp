@@ -126,11 +126,10 @@ bool StereoCalibration::readStringList( const std::string& filename, std::vector
 }
 
 
-// This function allows you to read from a file the parameters of the calibration in a file
+// This function is called when the users presses 'c' while calibrating, it captures a pair of images used for calibration
 int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_right, cv::Mat& resframe_left, cv::Mat& resframe_right)
 {
     cv::Size board_sz = cv::Size(this->board_w, this->board_h);  //Checkerboard Dimensions
-    //int board_n = this->board_w*this->board_h;  //Num Corners
     int result = 0;
 
     //Ensure frames contain data to avoid errors.
@@ -142,10 +141,10 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
 
     if( frame_left.size() == frame_right.size() )
     {
-        if( framesize == cv::Size() || frame_left.size() == framesize ){
+        if( framesize == cv::Size() || frame_left.size() == framesize ) {
             framesize = frame_left.size();
             std::cout << "Framesize: " << frame_left.size() << std::endl;
-          }
+        }
         else
         {
             std::cerr << "Warning: The images has the size different from the first image size. Skipping the pair." << std::endl;
@@ -187,7 +186,6 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
     //Use converted images to search for checkerboard. Returns true if found.
     found_left = cv::findChessboardCorners(gray_left, board_sz, corners_left,
                                            cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
-                                           //CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
     found_right = cv::findChessboardCorners(gray_right, board_sz, corners_right,
                                             cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
 
@@ -213,14 +211,14 @@ int StereoCalibration::stereoChessDetection(cv::Mat& frame_left, cv::Mat& frame_
     } else
         return -1;
 
-    std::cout << "Number of calibration frames captured: " << nimages << std::endl;
     std::cout << "Capture successful." << std::endl << std::endl;
+    std::cout << "Number of calibration frames captured: " << nimages << std::endl;
     return result;
 }
 
 // This function allows to calibrate the cameras and to save the calibration parameters in a file
 // (Intrinsic and extrinsic parameters)
-int StereoCalibration::stereoCalib(bool saveResult)
+int StereoCalibration::stereoCalib(bool saveResult, bool VR)
 {
     std::cout << "\n***Running stereo calibration...***\n" << std::endl;
 
@@ -233,16 +231,30 @@ int StereoCalibration::stereoCalib(bool saveResult)
     CM1 = cv::initCameraMatrix2D(objectPoints,imagePoints_left,framesize,0);
     CM2 = cv::initCameraMatrix2D(objectPoints,imagePoints_right,framesize,0);
 
-    double rms = cv::stereoCalibrate(objectPoints, imagePoints_left,imagePoints_right,
-                                     CM1, D1, CM2, D2,
-                                     framesize, R, T, E, F,
-                                     cv::CALIB_FIX_ASPECT_RATIO +
-                                     cv::CALIB_ZERO_TANGENT_DIST +
-                                     cv::CALIB_USE_INTRINSIC_GUESS +
-                                     cv::CALIB_SAME_FOCAL_LENGTH +
-                                     cv::CALIB_RATIONAL_MODEL +
-                                     cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5,
-                                     cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, 1e-5) );
+    double rms;
+    if (VR) {
+        rms = cv::stereoCalibrate(objectPoints, imagePoints_left,imagePoints_right,
+                                         CM1, D1, CM2, D2,
+                                         framesize, R, T, E, F,
+                                         cv::CALIB_FIX_ASPECT_RATIO +
+                                         cv::CALIB_ZERO_TANGENT_DIST +
+                                         cv::CALIB_USE_INTRINSIC_GUESS +
+                                         cv::CALIB_SAME_FOCAL_LENGTH +
+                                         cv::CALIB_RATIONAL_MODEL +
+                                         cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5,
+                                         cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, 1e-5) );
+    } else {
+        rms = cv::stereoCalibrate(objectPoints, imagePoints_left,imagePoints_right,
+                                         CM1, D1, CM2, D2,
+                                         framesize, R, T, E, F,
+                                         cv::CALIB_FIX_ASPECT_RATIO +
+                                         cv::CALIB_ZERO_TANGENT_DIST +
+                                         cv::CALIB_USE_INTRINSIC_GUESS +
+                                         cv::CALIB_SAME_FOCAL_LENGTH +
+                                         cv::CALIB_RATIONAL_MODEL +
+                                         cv::CALIB_FIX_K3 + cv::CALIB_FIX_K4 + cv::CALIB_FIX_K5,
+                                         cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, 1e-5) );
+    }
     calib_error = rms;
     printf("Done with RMS error %.2lf \n", rms);
 

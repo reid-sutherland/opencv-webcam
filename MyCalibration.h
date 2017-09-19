@@ -33,6 +33,7 @@ class MyCalibration
 {
 private:
     StereoCalibration* stereoCalibration;
+    bool stopThread;
 
 public:
     // Constructor
@@ -40,6 +41,8 @@ public:
 
     // Methods
     int createCalibration(vector<int> deviceIDs, map<int, CameraView*> cameraViewMap);
+    int createVRCalibration(vector<int> deviceIDs, map<int, CameraView*> cameraViewMap);
+    void chessboardCaptureThread();
     int chessboardDetection(cv::Mat& frame1, cv::Mat& frame2);
     int calibrateCameras();
 

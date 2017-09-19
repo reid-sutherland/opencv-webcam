@@ -52,13 +52,16 @@ Mat Q;
 
 
 bool connectCameras();
+void assignCameras();
 void calibrateCameras();
 void processFeeds();
+void staticROIMethod();
 void faceDetectionMethod();
 void faceTrackingMethod();
 void backgroundSubtractionMethod();
 void objectDetectionImage(Mat input, Mat &contoured, bool fromPicture);
-void histogramTest();
+double distanceCalculator(Rect2d ROI, Mat &outputFrame);
+void drawDistanceBelowROI(Rect2d ROI, double distance, Mat &outputFrame);
 int getch();
 
 void welcome() {
@@ -258,21 +261,32 @@ bool connectCameras() {
         }
     }
 
+    // For some cameras, we must specify which lens is the left and which lens is the right
+    cout << "*** Check camera orientation? (y/n) ***" << endl;
+    char c = (char) getch();
+    if (c == 'y' || c == 'Y') {
+        assignCameras();
+    } else { cout << endl; }    // formatting
+
     calibrateCameras();
     Q = stereoCalibration->getQMatrix();
 
     cout << "***Method Selection***" << endl;
     cout << "Press r for 3D Reconstruction, f for face detection, t for face tracking, "
-         << "b for background subtraction, or h for histogram testing." << endl << endl;
-    char c = (char) getch();
+         << "b for background subtraction, or s for static ROI." << endl << endl;
+
+    c = (char) getch();
+
+    stereoCalibration->printQMatrix();
+
     if (c == 'b' || c == 'B') {
         backgroundSubtractionMethod();
+    } else if (c == 's' || c == 'S') {
+        staticROIMethod();
     } else if (c == 'f' || c == 'F') {
         faceDetectionMethod();
     } else if (c == 't' || c == 'T') {
         faceTrackingMethod();
-    } else if (c == 'h' || c == 'H') {
-        histogramTest();
     } else {
         processFeeds();
     }
@@ -291,6 +305,46 @@ bool connectCameras() {
     return true;
 }
 
+// This function allows the user to test the cameras and make sure that both cameras are in the correct orientation
+// If the user determines there is a problem, they can choose to swap the camera IDs
+void assignCameras() {
+    Mat frame1, frame2;
+
+    cout << "Press Esc once you have determined if the camera orientation is correct." << endl << endl;
+
+    while (true) {
+        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        if (!frame1.empty() && !frame2.empty()) {
+            imshow("Left Camera", frame1);
+            imshow("Right Camera", frame2);
+        }
+
+        // Esc
+        if (waitKey(50) == 27) {
+            destroyAllWindows();
+            break;
+        }
+    }
+
+    cout << "Swap cameras? (y/n)" << endl;
+    auto c = (char) getch();
+
+    if (c == 'y' || c == 'Y') {
+        // Swap camera IDs
+        int temp = deviceIDs[0];
+        deviceIDs[0] = deviceIDs[1];
+        deviceIDs[1] = temp;
+
+        cout << "Cameras swapped!\n" << endl;
+    }
+    else {
+        // do not swap
+        cout << "Cameras NOT swapped.\n" << endl;
+    }
+}
+
 void calibrateCameras() {
     MyCalibration mc;
 
@@ -304,7 +358,8 @@ void calibrateCameras() {
 
         //input = Y or y
         if (input == 'y' || input == 'Y') {
-            mc.createCalibration(deviceIDs, cameraViewMap);
+            //mc.createCalibration(deviceIDs, cameraViewMap);
+            mc.createVRCalibration(deviceIDs, cameraViewMap);
             calibLoaded = true;
         }
         else {
@@ -388,6 +443,54 @@ void processFeeds() {
     }
 }
 
+void staticROIMethod() {
+    Mat frame1, frame2, outputFrame;
+    Rect2d ROI;
+    char c;
+    double distance;
+
+    cameraViewMap[deviceIDs[0]]->getFrame(outputFrame);
+
+    ROI = Rect2d(outputFrame.cols*3/8, outputFrame.rows*3/8, outputFrame.cols/4, outputFrame.rows/4);
+
+    cout << "***Center the object in the ROI to calculate its distance.***" << endl << endl;
+
+    while (true) {
+
+        cameraViewMap[deviceIDs[0]]->getFrame(frame1);
+        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+
+        // Rectify Images
+        stereoCalibration->rectifyStereoImg(frame1, frame2, frame1, frame2);
+
+        // Compute Disparity Map
+        disparityObject.computeDispMap(frame1, frame2);
+
+        // Initialize outputFrame
+        outputFrame = frame1.clone();
+
+        // Draw ROI on frame
+        Point2d P1(ROI.x, ROI.y);
+        Point2d P2(ROI.x + ROI.width, ROI.y + ROI.height);
+        rectangle(outputFrame, P1, P2, Scalar(255, 0, 0), 1, 8, 0);
+
+        // Calculate Distance
+        distance = distanceCalculator(ROI, outputFrame);
+
+        // Draw Distance Below ROI
+        drawDistanceBelowROI(ROI, distance, outputFrame);
+
+        // Show outputFrame
+        imshow("Static ROI", outputFrame);
+
+        c = (char) waitKey(50);
+        if ((int) c == 27) {
+            destroyAllWindows();
+            break;
+        }
+    }
+}
+
 void faceDetectionMethod() {
     Mat frame1, frame2, distanceFrame;
     vector<Rect> faces;
@@ -400,7 +503,6 @@ void faceDetectionMethod() {
         return;
     }
     faceDetection.updateQMatrix();
-    stereoCalibration->printQMatrix();
 
     while (true) {
         cameraViewMap[deviceIDs[0]]->getFrame(frame1);
@@ -487,7 +589,6 @@ void faceTrackingMethod() {
         faceDetection.computeDistanceToObject(true);
 
         // Draw the distance on the image
-        //faceDetection.drawDistanceBelowROI(true);   // true is used for tracking
         faceDetection.drawDistanceInCorner();
 
         // Copy outputFrame to distanceFrame
@@ -662,56 +763,87 @@ void objectDetectionImage(Mat input, Mat &contoured, bool fromPicture) {
     imwrite("/home/reid/Pictures/contoured.jpg", color) ;
 }
 
-void histogramTest() {
-    Mat frame1, frame2, src, hsv;
+// Distance Calculator
+double distanceCalculator(Rect2d ROI, Mat &outputFrame) {
 
-    while (waitKey(50) != 27) {
-        cameraViewMap[deviceIDs[0]]->getFrame(src);
-        cameraViewMap[deviceIDs[1]]->getFrame(frame2);
+    // Calculate smallROI
+    Rect2d smallROI = Rect2d(ROI.x + ROI.width/8,
+                             ROI.y + ROI.height/8,
+                             ROI.width*3/4,
+                             ROI.height*3/4);
 
-        cvtColor(src, hsv, CV_BGR2HSV);
+    Mat dispObjectFrame = Mat(disparityObject.filtered_disp, smallROI);
 
-        // Quantize the hue to 30 levels
-        // and the saturation to 32 levels
-        int hbins = 30, sbins = 32;
-        int histSize[] = {hbins, sbins};
+    // Find the average disparity across the ROI
+    int sum = 0, d_int = 0, numValues = 0;
+    for (int i = 0; i < dispObjectFrame.rows; i++) {
+        auto *disp_row_ptr = dispObjectFrame.ptr<uchar>(i);
 
-        // hue varies from 0 to 179, see cvtColor
-        float hranges[] = { 0, 180 };
+        for (int j = 0; j < dispObjectFrame.cols; j++) {
+            // add each disp value to the sum
+            uchar d = disp_row_ptr[j];
+            d_int = (int) d;
+            sum += d_int;
 
-        // saturation varies from 0 (black-gray-white) to
-        // 255 (pure spectrum color)
-        float sranges[] = { 0, 256 };
-        const float* ranges[] = { hranges, sranges };
-        MatND hist;
-
-        // we compute the histogram from the 0-th and 1-st channels
-        int channels[] = {0, 1};
-
-        calcHist( &hsv, 1, channels, Mat(), // do not use mask
-                  hist, 2, histSize, ranges,
-                  true, // the histogram is uniform
-                  false );
-        double maxVal=0;
-        minMaxLoc(hist, 0, &maxVal, 0, 0);
-
-        int scale = 10;
-        Mat histImg = Mat::zeros(sbins*scale, hbins*10, CV_8UC3);
-
-        for( int h = 0; h < hbins; h++ )
-            for( int s = 0; s < sbins; s++ )
-            {
-                float binVal = hist.at<float>(h, s);
-                int intensity = cvRound(binVal*255/maxVal);
-                rectangle( histImg, Point(h*scale, s*scale),
-                           Point( (h+1)*scale - 1, (s+1)*scale - 1),
-                           Scalar::all(intensity),
-                           CV_FILLED );
-            }
-
-        imshow( "Source", src );
-        imshow( "H-S Histogram", histImg );
+            // increment numValues
+            numValues++;
+        }
     }
+
+    // Calculate the average disparity
+    double avgDisp = sum / numValues;
+
+    // Use avgDisp with the Q matrix to calculate distance
+    double baseline, focal;
+
+    baseline = -1.0/Q.at<double>(3, 2);
+    if (baseline < 0) { baseline *= -1.0;}  // if baseline is negative, make it positive
+
+    focal = Q.at<double>(2, 3);
+
+    double distance = (baseline * focal) / avgDisp;
+
+#ifdef DEBUG
+    stereoCalibration->printQMatrix();
+    cout << "avgDisp = " << avgDisp << endl;
+    cout << "baseline = " << baseline << endl;
+    cout << "focal = " << focal << endl;
+    cout << "***Distance to object is: " << m_distance << " meters***" << endl << endl;
+#endif
+
+    return distance;
+}
+
+void drawDistanceBelowROI(Rect2d ROI, double distance, Mat &outputFrame) {
+    // Create the distance string
+    string distanceStr = "Distance: ";
+    distanceStr.append(to_string(distance));
+    distanceStr.append(" (m)");
+
+    // Initialize textDraw values
+    int fontFace = FONT_HERSHEY_SIMPLEX;
+    double fontScale = 0.75;
+    int thickness = 1;
+    int baseline = 0;
+
+    // Get the size of the text
+    Size textSize = getTextSize(distanceStr, fontFace, fontScale, thickness, &baseline);
+    baseline += thickness;
+
+    int boxBuffer = 15, boxMargin = 5;
+
+    // These values are used to center the textBox horizontally with the faceRectangle
+    double textCoordX = ROI.x + ((ROI.width - textSize.width) / 2);
+    double textCoordY = ROI.y + ROI.height + textSize.height + boxBuffer;
+    Point2d textPoint(textCoordX, textCoordY);
+
+    // Draw the box
+    rectangle(outputFrame, textPoint + Point2d(-boxMargin, boxMargin),
+              textPoint + Point2d(textSize.width, -textSize.height) + Point2d(boxMargin, -boxMargin),
+              Scalar::all(0), CV_FILLED);
+
+    // Place text in the box
+    putText(outputFrame, distanceStr, textPoint, fontFace, fontScale, Scalar::all(255), thickness, 8);
 }
 
 //reads from keypress, doesn't echo

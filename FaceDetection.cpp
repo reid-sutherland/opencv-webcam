@@ -10,7 +10,7 @@
 FaceDetection::FaceDetection(Disparity &disparity) :
         disp(disparity), stereoCalibration(StereoCalibration::instance())
 {
-
+    m_faceInFrame = false;
 }
 
 FaceDetection::~FaceDetection() {
@@ -134,14 +134,18 @@ int FaceDetection::detectFace(Mat frameLeft, Mat frameRight) {
     m_faceROI = findLargestFaceROI(rectFaces);
     if (m_faceROI.area() >= m_minSize.area()) {
         rectangle(m_outputFrame, m_faceROI, Scalar(255, 0, 0), 4);
+        m_faceInFrame = true;
+    }
+    else {
+        m_faceInFrame = false;
     }
 
     return 0;
 }
 
 int FaceDetection::computeDistanceToFace(bool computeDisp) {
-    if (m_faceROI.area() < m_minSize.area()) {
-        cout << "[computeDistanceToFace] m_faceROI < m_minSize.area()" << endl;
+    if (!m_faceInFrame) {
+        //cout << "[computeDistanceToFace] Error: No face in frame." << endl;
         return -1;
     }
 
@@ -203,6 +207,11 @@ int FaceDetection::computeDistanceToFace(bool computeDisp) {
 }
 
 void FaceDetection::drawDistanceBelowROI(bool tracking) {
+    // If no face is currently in the frame, do nothing
+    if (!m_faceInFrame) {
+        return;
+    }
+
     // Create the distance string
     string distanceStr = "Distance: ";
     distanceStr.append(to_string(m_distance));
@@ -278,7 +287,6 @@ Rect FaceDetection::findLargestFaceROI(vector<Rect> rectFaces) {
     // default value, indicates no real faces were found
     Rect largestROI = Rect(0,0,10,10);
     if (rectFaces.empty()) {
-        cout << "[findLargestFaceROI] No faces found." << endl;
         return largestROI;
     }
     largestROI = rectFaces[0];

@@ -50,6 +50,7 @@ private:
     Mat m_frameGray;
     Rect m_faceROI, m_smallFaceROI;
     Size m_minSize;
+    bool m_faceInFrame;
 
 public:
     //! Constructor

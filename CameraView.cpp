@@ -64,9 +64,6 @@ bool CameraView::connectToCamera(bool dropFrameIfBufferFull, int width, int heig
         //start capture thread
         m_captureThread->start();
 
-        //Create Window GUI for feed
-        //namedWindow(m_windowName, WINDOW_AUTOSIZE);
-
         //Start processing captured frames
         m_processingThread = new ProcessingThread(m_sharedImageBuffer, m_deviceNumber, this);
 

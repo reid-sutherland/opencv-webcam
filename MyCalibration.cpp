@@ -28,10 +28,6 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
     cout << "Press c to capture a frame. Note: at least 5 frames are required to calibrate cameras." << endl << endl;
 
     stereoCalibration->reset();
-    //stereoCalibration.init();
-
-    namedWindow("Camera 1");
-    namedWindow("Camera 2");
 
     while (true) {
         cvMap[deviceIDs[0]]->getFrame(frame1);
@@ -39,13 +35,12 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
         if( frame1.empty() || frame2.empty())
         {
             cout << " --(!) No captured frame -- Break!" << endl;
-            //break;
         }
         else {
             // Apply the classifier to the frame
             chessboardDetection(frame1, frame2);
-            imshow( "Camera 1", res_left );
-            imshow( "Camera 2", res_right );
+            imshow( "Left Camera", res_left );
+            imshow( "Right Camera", res_right );
         }
 
         char c = (char) cv::waitKey(200);
@@ -55,12 +50,57 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
         }
     }
 
-    cv::destroyWindow("Camera 1");
-    cv::destroyWindow("Camera 2");
+    destroyAllWindows();
 
     cout << "***Chessboard detection done.***" << endl;
 
     calibrateCameras();
+}
+
+// This method is used for calibrating a VR camera, and includes automatic frame capturing
+int MyCalibration::createVRCalibration(vector<int> deviceIDs, map<int, CameraView*> cvMap) {
+    cout << "\n***Starting chessboard detection now...***" << endl;
+    cout << "A frame will automatically be captured every second." << endl << endl;
+
+    stereoCalibration->reset();
+    stopThread = false;
+
+    thread *chessThread = new thread(&MyCalibration::chessboardCaptureThread, this);
+
+    while (true) {
+        cvMap[deviceIDs[0]]->getFrame(frame1);
+        cvMap[deviceIDs[1]]->getFrame(frame2);
+        if( frame1.empty() || frame2.empty())
+        {
+            cout << " --(!) No captured frame -- Continue!" << endl;
+            continue;
+        }
+
+        // Apply the classifier to the frame
+        chessboardDetection(frame1, frame2);
+        imshow( "Left Camera", res_left );
+        imshow( "Right Camera", res_right );
+
+
+        if (waitKey(50) == 27) {    // Escape
+            stopThread = true;
+            chessThread->join();
+            break;
+        }
+    }
+
+    destroyAllWindows();
+
+    cout << "***Chessboard detection done.***" << endl;
+
+    calibrateCameras();
+}
+
+void MyCalibration::chessboardCaptureThread() {
+    while (!stopThread) {
+        this_thread::sleep_for(chrono::seconds(1));
+        stereoCalibration->stereoChessDetection(frame1, frame2, res_left, res_right);
+    }
 }
 
 // This method show on screen the chessboard detection, so people can capture specific frames for the calibration.
@@ -75,8 +115,6 @@ int MyCalibration::chessboardDetection(cv::Mat& frame1, cv::Mat& frame2){
     std::vector<cv::Point2f> corners_right;
 
     // Copy of the original frame if nothing is detected
-    //frame1.copyTo(res_left);
-    //frame2.copyTo(res_right);
     res_left = frame1.clone();
     res_right = frame2.clone();
 

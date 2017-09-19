@@ -93,7 +93,7 @@ public:
     static StereoCalibration* instance();
 
     //! Perform calibration
-    int stereoCalib(bool saveResult=false);
+    int stereoCalib(bool saveResult=false, bool VR=false);
 
     //! function to save calibration parameters in the calib_filename
     bool saveCalib();

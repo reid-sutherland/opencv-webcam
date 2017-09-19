@@ -13,10 +13,13 @@
   <component name="ChangeListManager">
     <list default="true" id="f665e39b-a389-4d36-9d8d-cc9d777e81d2" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Disparity.cpp" afterPath="$PROJECT_DIR$/Disparity.cpp" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Disparity.h" afterPath="$PROJECT_DIR$/Disparity.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/CameraView.cpp" afterPath="$PROJECT_DIR$/CameraView.cpp" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/FaceDetection.cpp" afterPath="$PROJECT_DIR$/FaceDetection.cpp" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/FaceDetection.h" afterPath="$PROJECT_DIR$/FaceDetection.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/MyCalibration.cpp" afterPath="$PROJECT_DIR$/MyCalibration.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/MyCalibration.h" afterPath="$PROJECT_DIR$/MyCalibration.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/StereoCalibration.cpp" afterPath="$PROJECT_DIR$/StereoCalibration.cpp" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/StereoCalibration.h" afterPath="$PROJECT_DIR$/StereoCalibration.h" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/applicationFiles/CameraCalibration.yml" afterPath="$PROJECT_DIR$/applicationFiles/CameraCalibration.yml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/main.cpp" afterPath="$PROJECT_DIR$/main.cpp" />
     </list>
@@ -34,23 +37,25 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="main.cpp" pinned="false" current-in-tab="true">
+      <file leaf-file-name="main.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1493">
-              <caret line="489" column="8" lean-forward="false" selection-start-line="489" selection-start-column="8" selection-end-line="489" selection-end-column="8" />
+            <state relative-caret-position="59">
+              <caret line="307" column="66" lean-forward="false" selection-start-line="307" selection-start-column="66" selection-end-line="307" selection-end-column="66" />
               <folding>
                 <element signature="e#175#200#0" expanded="true" />
-                <element signature="e#1472#1658#0" expanded="false" />
-                <element signature="e#1660#3164#0" expanded="false" />
-                <element signature="e#3166#7753#0" expanded="false" />
-                <element signature="e#7755#9812#0" expanded="false" />
-                <element signature="e#9814#10916#0" expanded="false" />
-                <element signature="e#12537#12721#0" expanded="true" />
-                <element signature="e#16322#17168#0" expanded="false" />
-                <element signature="e#17170#21358#0" expanded="false" />
-                <element signature="e#21360#23040#0" expanded="false" />
-                <element signature="e#23042#23384#0" expanded="false" />
+                <element signature="e#1627#1813#0" expanded="false" />
+                <element signature="e#1815#3319#0" expanded="false" />
+                <element signature="e#3321#7908#0" expanded="false" />
+                <element signature="e#10289#11413#0" expanded="false" />
+                <element signature="e#12583#14401#0" expanded="false" />
+                <element signature="e#14202#14386#0" expanded="true" />
+                <element signature="e#15744#17077#0" expanded="false" />
+                <element signature="e#17079#19204#0" expanded="false" />
+                <element signature="e#19206#20052#0" expanded="false" />
+                <element signature="e#20054#24242#0" expanded="false" />
+                <element signature="e#25497#25752#0" expanded="true" />
+                <element signature="e#26998#27340#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -59,10 +64,9 @@
       <file leaf-file-name="FaceDetection.h" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/FaceDetection.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="535">
-              <caret line="73" column="30" lean-forward="false" selection-start-line="73" selection-start-column="30" selection-end-line="73" selection-end-column="30" />
+            <state relative-caret-position="-345">
+              <caret line="12" column="1" lean-forward="false" selection-start-line="12" selection-start-column="1" selection-end-line="12" selection-end-column="1" />
               <folding>
-                <element signature="e#123#152#0" expanded="true" />
                 <element signature="e#391#421#0" expanded="true" />
                 <element signature="e#455#472#0" expanded="true" />
               </folding>
@@ -73,12 +77,22 @@
       <file leaf-file-name="FaceDetection.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/FaceDetection.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="160">
-              <caret line="244" column="41" lean-forward="false" selection-start-line="244" selection-start-column="41" selection-end-line="244" selection-end-column="41" />
+            <state relative-caret-position="1345">
+              <caret line="195" column="42" lean-forward="false" selection-start-line="195" selection-start-column="42" selection-end-line="195" selection-end-column="42" />
               <folding>
-                <element signature="e#3026#3281#0" expanded="true" />
-                <element signature="e#5830#6085#0" expanded="true" />
+                <element signature="e#3052#3307#0" expanded="true" />
+                <element signature="e#5911#6166#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="StereoCalibration.cpp" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/StereoCalibration.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1376">
+              <caret line="256" column="5" lean-forward="false" selection-start-line="256" selection-start-column="5" selection-end-line="256" selection-end-column="5" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -86,7 +100,7 @@
       <file leaf-file-name="Disparity.h" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Disparity.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="190">
+            <state relative-caret-position="930">
               <caret line="62" column="25" lean-forward="false" selection-start-line="62" selection-start-column="25" selection-end-line="62" selection-end-column="25" />
               <folding />
             </state>
@@ -96,8 +110,8 @@
       <file leaf-file-name="Disparity.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Disparity.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-28">
-              <caret line="38" column="5" lean-forward="false" selection-start-line="38" selection-start-column="5" selection-end-line="38" selection-end-column="5" />
+            <state relative-caret-position="600">
+              <caret line="40" column="25" lean-forward="false" selection-start-line="40" selection-start-column="25" selection-end-line="40" selection-end-column="25" />
               <folding>
                 <element signature="e#1564#1601#0" expanded="true" />
                 <element signature="e#3818#3861#0" expanded="true" />
@@ -174,7 +188,6 @@
         <option value="$PROJECT_DIR$/FilenameManagement.h" />
         <option value="$PROJECT_DIR$/ProcessingThread.h" />
         <option value="$PROJECT_DIR$/CameraView.h" />
-        <option value="$PROJECT_DIR$/CameraView.cpp" />
         <option value="$PROJECT_DIR$/ProcessingThread.cpp" />
         <option value="$PROJECT_DIR$/PointCloudObjectDetection.h" />
         <option value="$PROJECT_DIR$/PointCloudObjectDetection.cpp" />
@@ -184,15 +197,17 @@
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/Reconstruction3D.cpp" />
         <option value="$PROJECT_DIR$/Reconstruction3D.h" />
+        <option value="$PROJECT_DIR$/Disparity.h" />
+        <option value="$PROJECT_DIR$/Disparity.cpp" />
+        <option value="$PROJECT_DIR$/FaceDetection.h" />
+        <option value="$PROJECT_DIR$/FaceDetection.cpp" />
+        <option value="$PROJECT_DIR$/DistanceCalculator.h" />
+        <option value="$PROJECT_DIR$/CameraView.cpp" />
         <option value="$PROJECT_DIR$/MyCalibration.h" />
+        <option value="$PROJECT_DIR$/main.cpp" />
         <option value="$PROJECT_DIR$/MyCalibration.cpp" />
         <option value="$PROJECT_DIR$/StereoCalibration.h" />
         <option value="$PROJECT_DIR$/StereoCalibration.cpp" />
-        <option value="$PROJECT_DIR$/Disparity.h" />
-        <option value="$PROJECT_DIR$/Disparity.cpp" />
-        <option value="$PROJECT_DIR$/FaceDetection.cpp" />
-        <option value="$PROJECT_DIR$/FaceDetection.h" />
-        <option value="$PROJECT_DIR$/main.cpp" />
       </list>
     </option>
   </component>
@@ -327,12 +342,15 @@
       <workItem from="1505152869883" duration="10293000" />
       <workItem from="1505228700153" duration="7291000" />
       <workItem from="1505239907136" duration="1419000" />
-      <workItem from="1505402292250" duration="9499000" />
+      <workItem from="1505402292250" duration="9589000" />
+      <workItem from="1505486855798" duration="1598000" />
+      <workItem from="1505752445138" duration="5953000" />
+      <workItem from="1505834832051" duration="6299000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="413612000" />
+    <option name="totallyTimeSpent" value="427552000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -347,12 +365,13 @@
     <frame x="65" y="-4" width="1377" height="912" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22949587" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24078254" sideWeight="0.5" order="1" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="CMake" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32258064" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="false" show_stripe_button="true" weight="0.56903225" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" x="1539" y="118" width="1329" height="642" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32931727" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
@@ -364,7 +383,6 @@
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32258064" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -388,46 +406,11 @@
           <option name="timeStamp" value="21" />
         </line-breakpoint>
       </breakpoints>
-      <option name="time" value="44" />
+      <option name="time" value="46" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///usr/include/pcl-1.8/pcl/impl/point_types.hpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="248">
-          <caret line="513" column="15" lean-forward="false" selection-start-line="513" selection-start-column="15" selection-end-line="513" selection-end-column="15" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/include/opencv2/core/hal/interface.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="248">
-          <caret line="100" column="8" lean-forward="false" selection-start-line="100" selection-start-column="8" selection-end-line="100" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/CaptureThread.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="210">
-          <caret line="14" column="0" lean-forward="false" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ProcessingThread.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="49" column="0" lean-forward="true" selection-start-line="49" selection-start-column="0" selection-end-line="49" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/include/pcl-1.8/pcl/PCLHeader.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-20">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/include/pcl-1.8/pcl/PointIndices.h">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="240">
@@ -460,13 +443,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="248">
           <caret line="112" column="8" lean-forward="false" selection-start-line="112" selection-start-column="8" selection-end-line="112" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/CameraView.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="248">
-          <caret line="46" column="17" lean-forward="false" selection-start-line="46" selection-start-column="17" selection-end-line="46" selection-end-column="17" />
         </state>
       </provider>
     </entry>
@@ -573,7 +549,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="248">
           <caret line="2046" column="8" lean-forward="false" selection-start-line="2046" selection-start-column="8" selection-end-line="2046" selection-end-column="8" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -610,32 +585,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/MyCalibration.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="510">
-          <caret line="43" column="25" lean-forward="false" selection-start-line="43" selection-start-column="25" selection-end-line="43" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/local/include/opencv2/core/cvstd.hpp">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="248">
           <caret line="457" column="17" lean-forward="false" selection-start-line="457" selection-start-column="17" selection-end-line="457" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/MyCalibration.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-225">
-          <caret line="30" column="31" lean-forward="true" selection-start-line="30" selection-start-column="31" selection-end-line="30" selection-end-column="31" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/StereoCalibration.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-560">
-          <caret line="78" column="32" lean-forward="false" selection-start-line="78" selection-start-column="32" selection-end-line="78" selection-end-column="32" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -679,7 +632,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="248">
           <caret line="484" column="18" lean-forward="false" selection-start-line="484" selection-start-column="18" selection-end-line="484" selection-end-column="18" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -691,32 +643,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/local/include/opencv2/calib3d.hpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="248">
-          <caret line="1083" column="20" lean-forward="false" selection-start-line="1083" selection-start-column="20" selection-end-line="1083" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/StereoCalibration.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="21" column="38" lean-forward="false" selection-start-line="21" selection-start-column="38" selection-end-line="21" selection-end-column="38" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/include/opencv2/core/types.hpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="248">
-          <caret line="182" column="16" lean-forward="false" selection-start-line="182" selection-start-column="16" selection-end-line="182" selection-end-column="16" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Disparity.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="190">
+        <state relative-caret-position="930">
           <caret line="62" column="25" lean-forward="false" selection-start-line="62" selection-start-column="25" selection-end-line="62" selection-end-column="25" />
           <folding />
         </state>
@@ -724,8 +653,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Disparity.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-28">
-          <caret line="38" column="5" lean-forward="false" selection-start-line="38" selection-start-column="5" selection-end-line="38" selection-end-column="5" />
+        <state relative-caret-position="600">
+          <caret line="40" column="25" lean-forward="false" selection-start-line="40" selection-start-column="25" selection-end-line="40" selection-end-column="25" />
           <folding>
             <element signature="e#1564#1601#0" expanded="true" />
             <element signature="e#3818#3861#0" expanded="true" />
@@ -747,6 +676,21 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/CameraProperties.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="480">
+          <caret line="43" column="23" lean-forward="false" selection-start-line="43" selection-start-column="23" selection-end-line="43" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/UtilsCameras.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="398">
+          <caret line="94" column="24" lean-forward="true" selection-start-line="94" selection-start-column="24" selection-end-line="94" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/DistanceCalculator.h" />
     <entry file="file:///usr/local/include/opencv2/imgproc.hpp">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="248">
@@ -755,46 +699,119 @@
         </state>
       </provider>
     </entry>
+    <entry file="file:///usr/local/include/opencv2/core/types.hpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="563">
+          <caret line="181" column="23" lean-forward="false" selection-start-line="181" selection-start-column="23" selection-end-line="181" selection-end-column="23" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/FaceDetection.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="535">
-          <caret line="73" column="30" lean-forward="false" selection-start-line="73" selection-start-column="30" selection-end-line="73" selection-end-column="30" />
+        <state relative-caret-position="-345">
+          <caret line="12" column="1" lean-forward="false" selection-start-line="12" selection-start-column="1" selection-end-line="12" selection-end-column="1" />
           <folding>
-            <element signature="e#123#152#0" expanded="true" />
             <element signature="e#391#421#0" expanded="true" />
             <element signature="e#455#472#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/CameraView.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/FaceDetection.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="160">
-          <caret line="244" column="41" lean-forward="false" selection-start-line="244" selection-start-column="41" selection-end-line="244" selection-end-column="41" />
+        <state relative-caret-position="1345">
+          <caret line="195" column="42" lean-forward="false" selection-start-line="195" selection-start-column="42" selection-end-line="195" selection-end-column="42" />
           <folding>
-            <element signature="e#3026#3281#0" expanded="true" />
-            <element signature="e#5830#6085#0" expanded="true" />
+            <element signature="e#3052#3307#0" expanded="true" />
+            <element signature="e#5911#6166#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/CameraView.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="310">
+          <caret line="64" column="33" lean-forward="false" selection-start-line="64" selection-start-column="33" selection-end-line="64" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/MyCalibration.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="390">
+          <caret line="35" column="20" lean-forward="false" selection-start-line="35" selection-start-column="20" selection-end-line="35" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/CaptureThread.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1470">
+          <caret line="99" column="20" lean-forward="false" selection-start-line="99" selection-start-column="20" selection-end-line="99" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/MyCalibration.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="145">
+          <caret line="66" column="0" lean-forward="true" selection-start-line="66" selection-start-column="0" selection-end-line="66" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1493">
-          <caret line="489" column="8" lean-forward="false" selection-start-line="489" selection-start-column="8" selection-end-line="489" selection-end-column="8" />
+        <state relative-caret-position="59">
+          <caret line="307" column="66" lean-forward="false" selection-start-line="307" selection-start-column="66" selection-end-line="307" selection-end-column="66" />
           <folding>
             <element signature="e#175#200#0" expanded="true" />
-            <element signature="e#1472#1658#0" expanded="false" />
-            <element signature="e#1660#3164#0" expanded="false" />
-            <element signature="e#3166#7753#0" expanded="false" />
-            <element signature="e#7755#9812#0" expanded="false" />
-            <element signature="e#9814#10916#0" expanded="false" />
-            <element signature="e#12537#12721#0" expanded="true" />
-            <element signature="e#16322#17168#0" expanded="false" />
-            <element signature="e#17170#21358#0" expanded="false" />
-            <element signature="e#21360#23040#0" expanded="false" />
-            <element signature="e#23042#23384#0" expanded="false" />
+            <element signature="e#1627#1813#0" expanded="false" />
+            <element signature="e#1815#3319#0" expanded="false" />
+            <element signature="e#3321#7908#0" expanded="false" />
+            <element signature="e#10289#11413#0" expanded="false" />
+            <element signature="e#12583#14401#0" expanded="false" />
+            <element signature="e#14202#14386#0" expanded="true" />
+            <element signature="e#15744#17077#0" expanded="false" />
+            <element signature="e#17079#19204#0" expanded="false" />
+            <element signature="e#19206#20052#0" expanded="false" />
+            <element signature="e#20054#24242#0" expanded="false" />
+            <element signature="e#25497#25752#0" expanded="true" />
+            <element signature="e#26998#27340#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/include/opencv2/calib3d.hpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="248">
+          <caret line="255" column="7" lean-forward="false" selection-start-line="255" selection-start-column="7" selection-end-line="255" selection-end-column="7" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/StereoCalibration.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="95" column="56" lean-forward="false" selection-start-line="95" selection-start-column="56" selection-end-line="95" selection-end-column="56" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/StereoCalibration.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1376">
+          <caret line="256" column="5" lean-forward="false" selection-start-line="256" selection-start-column="5" selection-end-line="256" selection-end-column="5" />
+          <folding />
         </state>
       </provider>
     </entry>
