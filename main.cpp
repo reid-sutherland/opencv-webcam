@@ -41,6 +41,7 @@ SharedImageBuffer *sharedImageBuffer;
 vector<int> deviceIDs;
 map<int, CameraView*> cameraViewMap;
 mutex delete_mutex;
+bool isVR;
 
 //Global Variables for processing/3D reconstruction
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -92,16 +93,16 @@ void menuOptions() {
 
 int main (int argc, char* argv[])
 {
-    //call XInitThreads
+    // Call XInitThreads
     XInitThreads();
 
-    //print welcmome message
+    // Print welcmome message
     welcome();
 
-    //detect connected cameras
+    // Detect connected cameras
     props = util.detectCameras();
 
-    //print menu options
+    // Print help message
     cout << "\n------------------------------------------" << endl;
     cout << "Press h to display a list of menu options." << endl;
     cout << "------------------------------------------" << endl;
@@ -109,21 +110,20 @@ int main (int argc, char* argv[])
     sharedImageBuffer = new SharedImageBuffer();
     char input = ' ';
 
+    if (props->getNumberOfCameras() == 2) {
+        deviceIDs = props->getDeviceIDs();
+        cout << "\n***NOTICE***: Only two cameras found, automatically starting camera connection." << endl;
+        cout << "Connecting to cameras [" << deviceIDs[0] << "] and [" << deviceIDs[1] << "]" << endl << endl;
+
+        input = 'c';
+    }
+    if (props->getNumberOfCameras() == 0) {
+        cout << "\n***NOTICE***: No cameras were found, please plug at least two in and try again." << endl << endl;
+
+        input = 'q';
+    }
+
     while (input != 'q') {
-        if (props->getNumberOfCameras() <= 2 && props->getNumberOfCameras() > 0) {
-            deviceIDs = props->getDeviceIDs();
-            cout << "\n***NOTICE***: Only two cameras found, automatically starting camera connection." << endl;
-            cout << "Connecting to cameras [" << deviceIDs[0] << "] and [" << deviceIDs[1] << "]" << endl << endl;
-
-            connectCameras();
-
-            cout << "\nAll cameras successfully disconnected." << endl;
-            break;
-        }
-        if (props->getNumberOfCameras() == 0) {
-            cout << "\n***NOTICE***: No cameras were found, please plug at least two in and try again." << endl << endl;
-            break;
-        }
 
         cout << "\n*****Please select an option.*****" << endl << endl;
         input = (char) getch();
@@ -146,6 +146,9 @@ int main (int argc, char* argv[])
                 cout << "Error: a device with ID \"" << id << "\" is already in your list."
                      << " (" << props->getDeviceNameByID(id) << ")" << endl;
             }
+            else if (deviceIDs.size() > 2) {
+                cout << "Error: No more than 2 cameras may be selected." << endl;
+            }
             else if (props->containsDeviceID(id)) {
                 deviceIDs.push_back(id);
                 cout << "Success! " << props->getDeviceNameByID(id) << " was successfully added." << endl;
@@ -160,6 +163,7 @@ int main (int argc, char* argv[])
             cout << "Please enter the ID of the device that you would like to remove." << endl;
             int id = getch() - 48;
             bool match = false;
+
             //loop through devices
             for (int i = 0; i < deviceIDs.size(); i++) {
                 if (id == deviceIDs[i]) {
@@ -192,9 +196,13 @@ int main (int argc, char* argv[])
 
         //attempt to connect to devices
         else if (input == 'c') {
-            //if deviceIDs is empty, return user to menu loop
+            // if deviceIDs is empty, return user to menu loop
             if (deviceIDs.empty()) {
                 cout << "Error: your list of devices is empty. Please add a device before attempting to connect." << endl;
+                continue;
+            }
+            else if (deviceIDs.size() < 2) {
+                cout << "Error: you must connect to exactly 2 cameras. Please add 2 cameras before attempting to connect." << endl;
                 continue;
             }
 
@@ -261,12 +269,27 @@ bool connectCameras() {
         }
     }
 
+    // If cameras are VR, calibration works a bit differently
+    cout << "*** VR Camera? (y/n) ***" << endl;
+    char c = (char) getch();
+    if (c == 'y' || c == 'Y') {
+        // Swap camera indices if VR Camera is being used
+        int temp = deviceIDs[0];
+        deviceIDs[0] = deviceIDs[1];
+        deviceIDs[1] = temp;
+
+        // Set flag
+        isVR = true;
+    } else { isVR = false; }
+
+    /*
     // For some cameras, we must specify which lens is the left and which lens is the right
     cout << "*** Check camera orientation? (y/n) ***" << endl;
     char c = (char) getch();
     if (c == 'y' || c == 'Y') {
         assignCameras();
     } else { cout << endl; }    // formatting
+     */
 
     calibrateCameras();
     Q = stereoCalibration->getQMatrix();
@@ -356,27 +379,28 @@ void calibrateCameras() {
     while (!calibLoaded){
         input = (char) getch();
 
-        //input = Y or y
+        // Yes
         if (input == 'y' || input == 'Y') {
-            //mc.createCalibration(deviceIDs, cameraViewMap);
-            mc.createVRCalibration(deviceIDs, cameraViewMap);
+            if (isVR) {
+                mc.createVRCalibration(deviceIDs, cameraViewMap);
+            } else {
+                mc.createCalibration(deviceIDs, cameraViewMap);
+            }
             calibLoaded = true;
         }
-        else {
-            //input = N or n
-            if (input == 'n' || input == 'N') {
-                stereoCalibration->setCalibFilename(CALIB_DEFAULT_FILENAME);
-                if (stereoCalibration->loadCalib()) {
-                    calibLoaded = true;
-                }
-                else {
-                    cout << "\nDo you want to calibrate cameras ? (y/n)" << endl;
-                    cout << "Note: otherwise a calibration file will be loaded.\n" << endl;
-                }
+        // No
+        else if (input == 'n' || input == 'N') {
+            if (stereoCalibration->loadCalib(isVR)) {
+                calibLoaded = true;
             }
             else {
-                cout << "\nError: Please select yes [y] or no [n]." << endl;
+                cout << "\nDo you want to calibrate cameras ? (y/n)" << endl;
+                cout << "Note: otherwise a calibration file will be loaded.\n" << endl;
             }
+        }
+        else {
+            cout << "\nError: Please select yes [y] or no [n]." << endl;
+        }
         }
     }
 }

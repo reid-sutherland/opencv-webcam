@@ -68,7 +68,8 @@ private:
     int board_h;// Chessboad Height
     cv::Size framesize;// Size of the chessboard images used to perform the calibration.
 
-    std::string calib_filename;// Calibration fileName Parameters
+    std::string calib_filename; // Calibration fileName Parameters
+    std::string calib_VR_filename;  // Calibration fileName if VR
 
     //! Set if calibration parameter is loaded
     bool calib_param_loaded;
@@ -93,13 +94,13 @@ public:
     static StereoCalibration* instance();
 
     //! Perform calibration
-    int stereoCalib(bool saveResult=false, bool VR=false);
+    int stereoCalib(bool saveResult=true, bool VR=false);
 
     //! function to save calibration parameters in the calib_filename
-    bool saveCalib();
+    bool saveCalib(bool VR=false);
 
     //! reload calibration parameters
-    bool loadCalib();
+    bool loadCalib(bool VR=false);
 
     //! To change calibration path name
     void setCalibFilename(std::string calib_filename);
@@ -130,6 +131,7 @@ public:
     void init()
     {
         calib_filename = CALIB_DEFAULT_FILENAME;
+        calib_VR_filename = CALIB_VR_FILENAME;
         min_poses = 5;
         board_w = 9;
         board_h = 6;

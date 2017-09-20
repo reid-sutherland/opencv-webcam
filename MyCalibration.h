@@ -33,7 +33,7 @@ class MyCalibration
 {
 private:
     StereoCalibration* stereoCalibration;
-    bool stopThread;
+    bool stopThread, startThread;
 
 public:
     // Constructor

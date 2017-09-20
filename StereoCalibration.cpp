@@ -30,12 +30,17 @@ StereoCalibration* StereoCalibration::instance()
 
 
 // This function saves the calibration parameters of the cameras to a file.
-bool StereoCalibration::saveCalib()
-{
-    cv::FileStorage fs(this->calib_filename, cv::FileStorage::WRITE);
+bool StereoCalibration::saveCalib(bool VR) {
+    if (VR) {
+        cv::FileStorage fs(this->calib_VR_filename, cv::FileStorage::WRITE);
+    } else {
+        cv::FileStorage fs(this->calib_filename, cv::FileStorage::WRITE);
+    }
 
-    if (!fs.isOpened())
-    {
+    if (!fs.isOpened() && VR) {
+        std::cout << "Camera Calibration file " << this->calib_VR_filename << " is not found." << std::endl;
+        return false;
+    } else if (!fs.isOpened() && !VR) {
         std::cout << "Camera Calibration file " << this->calib_filename << " is not found." << std::endl;
         return false;
     }
@@ -62,20 +67,33 @@ bool StereoCalibration::saveCalib()
     fs << "validRoiR" << this->validRoi[1];
 
     fs.release();
-    std::cout << "Calibration matrices saved to " << this->calib_filename.c_str() << std::endl << std::endl;
+    if (VR) {
+        std::cout << "Calibration matrices saved to " << this->calib_VR_filename.c_str() << std::endl << std::endl;
+    }
+    else {
+        std::cout << "Calibration matrices saved to " << this->calib_filename.c_str() << std::endl << std::endl;
+    }
 
     return true;
 }
 
 
 // This function loads the calibration paremeters of the cameras from a file.
-bool StereoCalibration::loadCalib()
+bool StereoCalibration::loadCalib(bool VR)
 {
-    cv::FileStorage fs(this->calib_filename, cv::FileStorage::READ);
+    if (VR) {
+        cv::FileStorage fs(this->calib_VR_filename, cv::FileStorage::READ);
+    }
+    else {
+        cv::FileStorage fs(this->calib_filename, cv::FileStorage::READ);
+    }
 
-    if (!fs.isOpened())
-    {
-        std::cout << "Camera Calibration file " << this->calib_filename.c_str() << " is not found." << std::endl;
+
+    if (!fs.isOpened() && VR) {
+        std::cout << "Camera Calibration file " << this->calib_VR_filename << " is not found." << std::endl;
+        return false;
+    } else if (!fs.isOpened() && !VR) {
+        std::cout << "Camera Calibration file " << this->calib_filename << " is not found." << std::endl;
         return false;
     }
 
@@ -102,9 +120,15 @@ bool StereoCalibration::loadCalib()
     fs["validRoiR"] >> this->validRoi[1];
 
     fs.release();
-    std::cout << "Calibration matrices successfully loaded from " << this->calib_filename.c_str() << std::endl << std::endl;
-    this->calib_param_loaded = true;
 
+    if (VR) {
+        std::cout << "Calibration matrices successfully loaded from " << this->calib_VR_filename.c_str() << std::endl << std::endl;
+    }
+    else {
+        std::cout << "Calibration matrices successfully loaded from " << this->calib_filename.c_str() << std::endl << std::endl;
+    }
+
+    this->calib_param_loaded = true;
     return true;
 }
 
@@ -327,7 +351,7 @@ int StereoCalibration::stereoCalib(bool saveResult, bool VR)
     // Tell that the calibration parameters is available
     calib_param_loaded = true;
     if (saveResult){
-        saveCalib();
+        saveCalib(VR);
     }
 
     return 0;

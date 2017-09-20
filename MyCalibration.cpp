@@ -54,16 +54,25 @@ int MyCalibration::createCalibration(vector<int> deviceIDs, map<int, CameraView*
 
     cout << "***Chessboard detection done.***" << endl;
 
-    calibrateCameras();
+    //calibrateCameras();
+    if (stereoCalibration->stereoCalib(true, false) == -1) {
+        cout << "***Calibration FAILED.***\n" << endl;
+        return -1;
+    }
+    else {
+        cout << "***Calibration done.***\n" << endl;
+        return 0;
+    }
 }
 
 // This method is used for calibrating a VR camera, and includes automatic frame capturing
 int MyCalibration::createVRCalibration(vector<int> deviceIDs, map<int, CameraView*> cvMap) {
     cout << "\n***Starting chessboard detection now...***" << endl;
-    cout << "A frame will automatically be captured every second." << endl << endl;
+    cout << "Press any key to start automatically capturing frames every second." << endl << endl;
 
     stereoCalibration->reset();
     stopThread = false;
+    startThread = false;
 
     thread *chessThread = new thread(&MyCalibration::chessboardCaptureThread, this);
 
@@ -81,8 +90,11 @@ int MyCalibration::createVRCalibration(vector<int> deviceIDs, map<int, CameraVie
         imshow( "Left Camera", res_left );
         imshow( "Right Camera", res_right );
 
-
-        if (waitKey(50) == 27) {    // Escape
+        int c = waitKey(30);
+        if (c > -1 && !startThread) {   // Any key
+            startThread = true;
+        }
+        else if (c == 27) {    // Escape
             stopThread = true;
             chessThread->join();
             break;
@@ -93,10 +105,23 @@ int MyCalibration::createVRCalibration(vector<int> deviceIDs, map<int, CameraVie
 
     cout << "***Chessboard detection done.***" << endl;
 
-    calibrateCameras();
+    //calibrateCameras();
+    if (stereoCalibration->stereoCalib(true, true) == -1) {
+        cout << "***Calibration FAILED.***\n" << endl;
+        return -1;
+    }
+    else {
+        cout << "***Calibration done.***\n" << endl;
+        return 0;
+    }
 }
 
 void MyCalibration::chessboardCaptureThread() {
+    // Wait for threadStart to be set
+    while (!startThread) {
+        this_thread::yield();
+    }
+    // Wait for threadStop to be set
     while (!stopThread) {
         this_thread::sleep_for(chrono::seconds(1));
         stereoCalibration->stereoChessDetection(frame1, frame2, res_left, res_right);
@@ -143,14 +168,13 @@ int MyCalibration::chessboardDetection(cv::Mat& frame1, cv::Mat& frame2){
 }
 
 // This method just call the calibration method from the stereocalibration instance.
-int MyCalibration::calibrateCameras(){
-
-  int resultat = stereoCalibration->stereoCalib(true);  //true - always save result
-  if (resultat == -1) {
-    std::cout << "Calibration failed.\n" << std::endl;
-  }
-  else{
-    std::cout << "Calibration done.\n" << std::endl;
-  }
-  return resultat;
+int MyCalibration::calibrateCameras() {
+    if (stereoCalibration->stereoCalib(true) == -1) {     //true - always save result
+        std::cout << "***Calibration FAILED.***\n" << std::endl;
+        return -1;
+    }
+    else{
+        std::cout << "***Calibration done.***\n" << std::endl;
+        return 0;
+    }
 }
